@@ -6,7 +6,7 @@ struct QuranyApp: App {
     @State private var isLoading = true
 
     init() {
-        QuranFonts.registerAll()
+        QuranFontManager.shared.registerStaticFonts()
     }
 
     var body: some Scene {

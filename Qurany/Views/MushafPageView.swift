@@ -12,7 +12,7 @@ struct MushafPageView: View {
 
             VStack(spacing: 0) {
                 ForEach(page.lines) { line in
-                    MushafLineView(line: line, fontSize: fontSize)
+                    MushafLineView(line: line, fontSize: fontSize, pageNumber: page.id)
                         .frame(height: lineHeight)
                 }
 

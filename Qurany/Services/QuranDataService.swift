@@ -20,7 +20,7 @@ final class QuranDataService {
     // MARK: - Database Access
 
     private func openDatabases() {
-        contentDB = openDatabase(named: "quranContent", ext: "db")
+        contentDB = openDatabase(named: "qpc-v4", ext: "db")
         layoutDB = openDatabase(named: "mushafLayout", ext: "db")
     }
 
