@@ -1,0 +1,29 @@
+import SwiftUI
+
+struct MushafPageView: View {
+    let page: QuranPage
+
+    private let totalLines: CGFloat = 15
+
+    var body: some View {
+        GeometryReader { geo in
+            let lineHeight = geo.size.height / totalLines
+            let fontSize = lineHeight * 0.55
+
+            VStack(spacing: 0) {
+                ForEach(page.lines) { line in
+                    MushafLineView(line: line, fontSize: fontSize)
+                        .frame(height: lineHeight)
+                }
+
+                if page.lines.count < Int(totalLines) {
+                    Spacer(minLength: 0)
+                }
+            }
+            .frame(width: geo.size.width, height: geo.size.height)
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 24)
+        .padding(.bottom, 32)
+    }
+}
