@@ -16,7 +16,7 @@ final class QuranFontManager {
         guard !staticFontsRegistered else { return }
         staticFontsRegistered = true
 
-        for fontFile in ["QCF_SurahHeader_COLOR-Regular", "UthmanicHafs_V22"] {
+        for fontFile in ["QCF_SurahHeader_COLOR-Regular", "UthmanicHafs_V22", "Oi-Regular"] {
             if let url = Bundle.main.url(forResource: fontFile, withExtension: "ttf") {
                 var error: Unmanaged<CFError>?
                 CTFontManagerRegisterFontsForURL(url as CFURL, .process, &error)
@@ -62,8 +62,4 @@ extension Font {
         .custom("QCF_SurahHeader_COLOR", size: size)
     }
 
-    static func quranPage(_ page: Int, size: CGFloat) -> Font {
-        let name = QuranFontManager.shared.fontName(forPage: page)
-        return .custom(name, size: size)
-    }
 }

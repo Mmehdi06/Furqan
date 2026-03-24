@@ -3,6 +3,13 @@ import SwiftUI
 struct MushafPageView: View {
     let page: QuranPage
     let highlightedAyah: AyahHighlight?
+    let onAyahAction: ((AyahAction) -> Void)?
+
+    init(page: QuranPage, highlightedAyah: AyahHighlight?, onAyahAction: ((AyahAction) -> Void)? = nil) {
+        self.page = page
+        self.highlightedAyah = highlightedAyah
+        self.onAyahAction = onAyahAction
+    }
 
     private let totalLines: CGFloat = 15
 
@@ -17,7 +24,8 @@ struct MushafPageView: View {
                         line: line,
                         fontSize: fontSize,
                         pageNumber: page.id,
-                        highlightedAyah: highlightedAyah
+                        highlightedAyah: highlightedAyah,
+                        onAyahAction: onAyahAction
                     )
                     .frame(height: lineHeight)
                 }

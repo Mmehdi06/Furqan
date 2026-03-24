@@ -1,11 +1,19 @@
 import SwiftUI
-import UIKit
 
 struct MushafLineView: View {
     let line: QuranLine
     let fontSize: CGFloat
     let pageNumber: Int
     let highlightedAyah: AyahHighlight?
+    let onAyahAction: ((AyahAction) -> Void)?
+
+    init(line: QuranLine, fontSize: CGFloat, pageNumber: Int, highlightedAyah: AyahHighlight?, onAyahAction: ((AyahAction) -> Void)? = nil) {
+        self.line = line
+        self.fontSize = fontSize
+        self.pageNumber = pageNumber
+        self.highlightedAyah = highlightedAyah
+        self.onAyahAction = onAyahAction
+    }
 
     var body: some View {
         switch line.lineType {
@@ -64,9 +72,12 @@ struct MushafLineView: View {
             .frame(maxWidth: .infinity)
     }
 
-    // MARK: - Ayah Line (QPC glyph font)
+    // MARK: - Ayah Line with context menu
 
+    @ViewBuilder
     private var ayahLineView: some View {
+        let ayahs = line.ayahsOnLine
+
         QPCTextLine(
             words: line.words,
             pageNumber: pageNumber,
@@ -74,7 +85,57 @@ struct MushafLineView: View {
             isCentered: line.isCentered,
             highlightedAyah: highlightedAyah
         )
+        .contentShape(Rectangle())
+        .contextMenu {
+            if ayahs.count == 1, let a = ayahs.first {
+                // Single ayah — show actions directly
+                ayahMenuItems(surah: a.surah, ayah: a.ayah)
+            } else {
+                // Multiple ayahs — show sub-menu per ayah
+                ForEach(ayahs, id: \.ayah) { a in
+                    Menu("Ayah \(a.surah):\(a.ayah)") {
+                        ayahMenuItems(surah: a.surah, ayah: a.ayah)
+                    }
+                }
+            }
+        }
     }
+
+    @ViewBuilder
+    private func ayahMenuItems(surah: Int, ayah: Int) -> some View {
+        let isBookmarked = BookmarkManager.shared.isAyahBookmarked(surah: surah, ayah: ayah)
+
+        Button {
+            onAyahAction?(.showTafsir(surah: surah, ayah: ayah))
+        } label: {
+            Label("Tafsir (\(surah):\(ayah))", systemImage: "book.pages")
+        }
+
+        Button {
+            onAyahAction?(.showSurahInfo(surah: surah))
+        } label: {
+            Label("Surah Info", systemImage: "info.circle")
+        }
+
+        Divider()
+
+        Button {
+            onAyahAction?(.toggleBookmark(surah: surah, ayah: ayah, page: pageNumber))
+        } label: {
+            Label(
+                isBookmarked ? "Remove Bookmark" : "Bookmark Ayah",
+                systemImage: isBookmarked ? "bookmark.slash.fill" : "bookmark"
+            )
+        }
+    }
+}
+
+// MARK: - Ayah Actions
+
+enum AyahAction {
+    case showTafsir(surah: Int, ayah: Int)
+    case showSurahInfo(surah: Int)
+    case toggleBookmark(surah: Int, ayah: Int, page: Int)
 }
 
 // MARK: - QPC Glyph Text Rendering (UIKit)
@@ -94,6 +155,7 @@ struct QPCTextLine: UIViewRepresentable {
         label.baselineAdjustment = .alignCenters
         label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         label.clipsToBounds = true
+        label.isUserInteractionEnabled = false
         return label
     }
 
@@ -110,20 +172,15 @@ struct QPCTextLine: UIViewRepresentable {
             .paragraphStyle: paragraphStyle
         ]
 
-        // Build attributed string word by word, highlighting matching ayah
         let attributed = NSMutableAttributedString()
 
         for word in words {
-            let wordAttrs: [NSAttributedString.Key: Any]
+            var attrs = baseAttributes
             if let highlight = highlightedAyah,
                word.surah == highlight.surah && word.ayah == highlight.ayah {
-                var attrs = baseAttributes
                 attrs[.backgroundColor] = UIColor.systemYellow.withAlphaComponent(0.35)
-                wordAttrs = attrs
-            } else {
-                wordAttrs = baseAttributes
             }
-            attributed.append(NSAttributedString(string: word.text, attributes: wordAttrs))
+            attributed.append(NSAttributedString(string: word.text, attributes: attrs))
         }
 
         label.attributedText = attributed

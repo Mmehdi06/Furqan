@@ -26,6 +26,7 @@ struct SearchView: View {
                         .autocorrectionDisabled()
                         .focused($isFieldFocused)
                         .environment(\.layoutDirection, .rightToLeft)
+                        .environment(\.locale, Locale(identifier: "ar"))
                         .submitLabel(.search)
 
                     if !searchText.isEmpty {

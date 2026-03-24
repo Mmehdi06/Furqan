@@ -24,6 +24,20 @@ struct QuranLine: Identifiable {
     let isCentered: Bool
     let surahNumber: Int?
     let words: [QuranWord]
+
+    /// Unique ayahs present on this line
+    var ayahsOnLine: [(surah: Int, ayah: Int)] {
+        var seen = Set<String>()
+        var result: [(surah: Int, ayah: Int)] = []
+        for word in words {
+            let key = "\(word.surah):\(word.ayah)"
+            if !seen.contains(key) {
+                seen.insert(key)
+                result.append((word.surah, word.ayah))
+            }
+        }
+        return result
+    }
 }
 
 struct QuranPage: Identifiable {
@@ -56,18 +70,44 @@ struct SearchResult: Identifiable {
     let surahName: String
 }
 
-// MARK: - Bookmark
+// MARK: - Bookmark (supports both page and ayah bookmarks)
 
 struct Bookmark: Identifiable, Codable {
     let id: UUID
     let pageNumber: Int
     let surahName: String
+    let surah: Int
+    let ayah: Int
     let dateCreated: Date
 
+    // Page bookmark (legacy)
     init(pageNumber: Int, surahName: String) {
         self.id = UUID()
         self.pageNumber = pageNumber
         self.surahName = surahName
+        self.surah = 0
+        self.ayah = 0
         self.dateCreated = Date()
+    }
+
+    // Ayah bookmark
+    init(pageNumber: Int, surahName: String, surah: Int, ayah: Int) {
+        self.id = UUID()
+        self.pageNumber = pageNumber
+        self.surahName = surahName
+        self.surah = surah
+        self.ayah = ayah
+        self.dateCreated = Date()
+    }
+
+    var isAyahBookmark: Bool {
+        surah > 0 && ayah > 0
+    }
+
+    var displayLabel: String {
+        if isAyahBookmark {
+            return "\(surahName) (\(surah):\(ayah))"
+        }
+        return "\(surahName) — Page \(pageNumber)"
     }
 }

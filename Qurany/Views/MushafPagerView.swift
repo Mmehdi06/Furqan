@@ -17,6 +17,10 @@ struct MushafPagerView: View {
     @State private var toastMessage = ""
     @State private var highlightedAyah: AyahHighlight?
 
+    // Tafsir & Surah Info sheets
+    @State private var tafsirTarget: (surah: Int, ayah: Int)?
+    @State private var surahInfoTarget: Int?
+
     @StateObject private var bookmarkManager = BookmarkManager.shared
 
     private let lastPageKey = "quran_last_page"
@@ -32,19 +36,14 @@ struct MushafPagerView: View {
         ZStack {
             TabView(selection: $currentPage) {
                 ForEach(pages) { page in
-                    MushafPageView(page: page, highlightedAyah: highlightedAyah)
-                        .tag(page.id)
-                        .onLongPressGesture {
-                            let surahName = QuranDataService.shared.surahName(forPage: page.id)
-                            bookmarkManager.toggleBookmark(page: page.id, surahName: surahName)
-                            toastMessage = bookmarkManager.isBookmarked(page: page.id)
-                                ? "Bookmarked page \(page.id)"
-                                : "Removed bookmark"
-                            withAnimation { showBookmarkToast = true }
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                                withAnimation { showBookmarkToast = false }
-                            }
+                    MushafPageView(
+                        page: page,
+                        highlightedAyah: highlightedAyah,
+                        onAyahAction: { action in
+                            handleAyahAction(action)
                         }
+                    )
+                    .tag(page.id)
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
@@ -58,9 +57,7 @@ struct MushafPagerView: View {
             VStack {
                 Spacer()
 
-                // Bottom bar
                 HStack {
-                    // Surah index button
                     Button {
                         showSurahIndex = true
                     } label: {
@@ -71,7 +68,6 @@ struct MushafPagerView: View {
                             .background(.ultraThinMaterial, in: Circle())
                     }
 
-                    // Search button
                     Button {
                         showSearch = true
                     } label: {
@@ -84,7 +80,6 @@ struct MushafPagerView: View {
 
                     Spacer()
 
-                    // Page number
                     Text("\(currentPage)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -94,7 +89,6 @@ struct MushafPagerView: View {
 
                     Spacer()
 
-                    // Bookmarks button
                     Button {
                         showBookmarks = true
                     } label: {
@@ -109,7 +103,7 @@ struct MushafPagerView: View {
                 .padding(.bottom, 8)
             }
 
-            // Bookmark toast
+            // Toast
             if showBookmarkToast {
                 VStack {
                     Text(toastMessage)
@@ -130,14 +124,55 @@ struct MushafPagerView: View {
             }
         }
         .sheet(isPresented: $showBookmarks) {
-            BookmarksView(bookmarkManager: bookmarkManager) { page in
+            BookmarksView(bookmarkManager: bookmarkManager) { page, surah, ayah in
                 currentPage = page
+                if surah > 0 && ayah > 0 {
+                    highlightAyah(surah: surah, ayah: ayah)
+                }
             }
         }
         .sheet(isPresented: $showSearch) {
             SearchView { page, surah, ayah in
                 currentPage = page
                 highlightAyah(surah: surah, ayah: ayah)
+            }
+        }
+        .sheet(item: Binding(
+            get: { tafsirTarget.map { TafsirTarget(surah: $0.surah, ayah: $0.ayah) } },
+            set: { tafsirTarget = $0.map { ($0.surah, $0.ayah) } }
+        )) { target in
+            TafsirView(surah: target.surah, ayah: target.ayah)
+                .presentationDetents([.medium, .large])
+        }
+        .sheet(item: Binding(
+            get: { surahInfoTarget.map { SurahInfoTarget(surah: $0) } },
+            set: { surahInfoTarget = $0?.surah }
+        )) { target in
+            SurahInfoView(surahNumber: target.surah)
+                .presentationDetents([.medium, .large])
+        }
+    }
+
+    // MARK: - Actions
+
+    private func handleAyahAction(_ action: AyahAction) {
+        switch action {
+        case .showTafsir(let surah, let ayah):
+            tafsirTarget = (surah, ayah)
+
+        case .showSurahInfo(let surah):
+            surahInfoTarget = surah
+
+        case .toggleBookmark(let surah, let ayah, let page):
+            let surahName = QuranDataService.shared.surahName(forPage: page)
+            bookmarkManager.toggleAyahBookmark(page: page, surahName: surahName, surah: surah, ayah: ayah)
+            let isNowBookmarked = bookmarkManager.isAyahBookmarked(surah: surah, ayah: ayah)
+            toastMessage = isNowBookmarked
+                ? "Bookmarked \(surah):\(ayah)"
+                : "Removed bookmark"
+            withAnimation { showBookmarkToast = true }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                withAnimation { showBookmarkToast = false }
             }
         }
     }
@@ -154,4 +189,17 @@ struct MushafPagerView: View {
             }
         }
     }
+}
+
+// MARK: - Helper Types
+
+private struct TafsirTarget: Identifiable {
+    let id = UUID()
+    let surah: Int
+    let ayah: Int
+}
+
+private struct SurahInfoTarget: Identifiable {
+    let id = UUID()
+    let surah: Int
 }
