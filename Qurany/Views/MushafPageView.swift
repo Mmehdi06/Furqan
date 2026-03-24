@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MushafPageView: View {
     let page: QuranPage
+    let highlightedAyah: AyahHighlight?
 
     private let totalLines: CGFloat = 15
 
@@ -12,8 +13,13 @@ struct MushafPageView: View {
 
             VStack(spacing: 0) {
                 ForEach(page.lines) { line in
-                    MushafLineView(line: line, fontSize: fontSize, pageNumber: page.id)
-                        .frame(height: lineHeight)
+                    MushafLineView(
+                        line: line,
+                        fontSize: fontSize,
+                        pageNumber: page.id,
+                        highlightedAyah: highlightedAyah
+                    )
+                    .frame(height: lineHeight)
                 }
 
                 if page.lines.count < Int(totalLines) {

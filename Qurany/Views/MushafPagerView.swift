@@ -1,5 +1,10 @@
 import SwiftUI
 
+struct AyahHighlight: Equatable {
+    let surah: Int
+    let ayah: Int
+}
+
 struct MushafPagerView: View {
     let pages: [QuranPage]
     let surahs: [SurahInfo]
@@ -7,8 +12,10 @@ struct MushafPagerView: View {
     @State private var currentPage: Int
     @State private var showSurahIndex = false
     @State private var showBookmarks = false
+    @State private var showSearch = false
     @State private var showBookmarkToast = false
     @State private var toastMessage = ""
+    @State private var highlightedAyah: AyahHighlight?
 
     @StateObject private var bookmarkManager = BookmarkManager.shared
 
@@ -25,7 +32,7 @@ struct MushafPagerView: View {
         ZStack {
             TabView(selection: $currentPage) {
                 ForEach(pages) { page in
-                    MushafPageView(page: page)
+                    MushafPageView(page: page, highlightedAyah: highlightedAyah)
                         .tag(page.id)
                         .onLongPressGesture {
                             let surahName = QuranDataService.shared.surahName(forPage: page.id)
@@ -58,6 +65,17 @@ struct MushafPagerView: View {
                         showSurahIndex = true
                     } label: {
                         Image(systemName: "list.bullet")
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                            .padding(8)
+                            .background(.ultraThinMaterial, in: Circle())
+                    }
+
+                    // Search button
+                    Button {
+                        showSearch = true
+                    } label: {
+                        Image(systemName: "magnifyingglass")
                             .font(.body)
                             .foregroundStyle(.secondary)
                             .padding(8)
@@ -114,6 +132,25 @@ struct MushafPagerView: View {
         .sheet(isPresented: $showBookmarks) {
             BookmarksView(bookmarkManager: bookmarkManager) { page in
                 currentPage = page
+            }
+        }
+        .sheet(isPresented: $showSearch) {
+            SearchView { page, surah, ayah in
+                currentPage = page
+                highlightAyah(surah: surah, ayah: ayah)
+            }
+        }
+    }
+
+    // MARK: - Ayah Highlight
+
+    private func highlightAyah(surah: Int, ayah: Int) {
+        withAnimation(.easeIn(duration: 0.3)) {
+            highlightedAyah = AyahHighlight(surah: surah, ayah: ayah)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+            withAnimation(.easeOut(duration: 0.5)) {
+                highlightedAyah = nil
             }
         }
     }

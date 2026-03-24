@@ -5,6 +5,7 @@ struct MushafLineView: View {
     let line: QuranLine
     let fontSize: CGFloat
     let pageNumber: Int
+    let highlightedAyah: AyahHighlight?
 
     var body: some View {
         switch line.lineType {
@@ -66,12 +67,12 @@ struct MushafLineView: View {
     // MARK: - Ayah Line (QPC glyph font)
 
     private var ayahLineView: some View {
-        let text = line.words.map(\.text).joined()
-        return QPCTextLine(
-            text: text,
+        QPCTextLine(
+            words: line.words,
             pageNumber: pageNumber,
             fontSize: fontSize,
-            isCentered: line.isCentered
+            isCentered: line.isCentered,
+            highlightedAyah: highlightedAyah
         )
     }
 }
@@ -79,10 +80,11 @@ struct MushafLineView: View {
 // MARK: - QPC Glyph Text Rendering (UIKit)
 
 struct QPCTextLine: UIViewRepresentable {
-    let text: String
+    let words: [QuranWord]
     let pageNumber: Int
     let fontSize: CGFloat
     let isCentered: Bool
+    let highlightedAyah: AyahHighlight?
 
     func makeUIView(context: Context) -> UILabel {
         let label = UILabel()
@@ -91,6 +93,7 @@ struct QPCTextLine: UIViewRepresentable {
         label.minimumScaleFactor = 0.5
         label.baselineAdjustment = .alignCenters
         label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        label.clipsToBounds = true
         return label
     }
 
@@ -102,11 +105,27 @@ struct QPCTextLine: UIViewRepresentable {
         paragraphStyle.baseWritingDirection = .rightToLeft
         paragraphStyle.lineBreakMode = .byClipping
 
-        let attributes: [NSAttributedString.Key: Any] = [
+        let baseAttributes: [NSAttributedString.Key: Any] = [
             .font: font,
             .paragraphStyle: paragraphStyle
         ]
 
-        label.attributedText = NSAttributedString(string: text, attributes: attributes)
+        // Build attributed string word by word, highlighting matching ayah
+        let attributed = NSMutableAttributedString()
+
+        for word in words {
+            let wordAttrs: [NSAttributedString.Key: Any]
+            if let highlight = highlightedAyah,
+               word.surah == highlight.surah && word.ayah == highlight.ayah {
+                var attrs = baseAttributes
+                attrs[.backgroundColor] = UIColor.systemYellow.withAlphaComponent(0.35)
+                wordAttrs = attrs
+            } else {
+                wordAttrs = baseAttributes
+            }
+            attributed.append(NSAttributedString(string: word.text, attributes: wordAttrs))
+        }
+
+        label.attributedText = attributed
     }
 }

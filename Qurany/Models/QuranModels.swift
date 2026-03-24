@@ -45,6 +45,17 @@ struct SurahInfo: Identifiable {
     var startPage: Int = 1    // filled from layout DB
 }
 
+// MARK: - Search Result
+
+struct SearchResult: Identifiable {
+    let id = UUID()
+    let surah: Int
+    let ayah: Int
+    let verseText: String
+    let pageNumber: Int
+    let surahName: String
+}
+
 // MARK: - Bookmark
 
 struct Bookmark: Identifiable, Codable {
