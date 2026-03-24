@@ -7,13 +7,13 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		0150A6632F71CCDD003080FA /* Qurany.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Qurany.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		0150A6632F71CCDD003080FA /* Furqan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Furqan.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		0150A6652F71CCDD003080FA /* Qurany */ = {
+		0150A6652F71CCDD003080FA /* Furqan */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Qurany;
+			path = Furqan;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -32,7 +32,7 @@
 		0150A65A2F71CCDD003080FA = {
 			isa = PBXGroup;
 			children = (
-				0150A6652F71CCDD003080FA /* Qurany */,
+				0150A6652F71CCDD003080FA /* Furqan */,
 				0150A6642F71CCDD003080FA /* Products */,
 			);
 			sourceTree = "<group>";
@@ -40,7 +40,7 @@
 		0150A6642F71CCDD003080FA /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				0150A6632F71CCDD003080FA /* Qurany.app */,
+				0150A6632F71CCDD003080FA /* Furqan.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -48,9 +48,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		0150A6622F71CCDD003080FA /* Qurany */ = {
+		0150A6622F71CCDD003080FA /* Furqan */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 0150A6732F71CCDF003080FA /* Build configuration list for PBXNativeTarget "Qurany" */;
+			buildConfigurationList = 0150A6732F71CCDF003080FA /* Build configuration list for PBXNativeTarget "Furqan" */;
 			buildPhases = (
 				0150A65F2F71CCDD003080FA /* Sources */,
 				0150A6602F71CCDD003080FA /* Frameworks */,
@@ -61,13 +61,13 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				0150A6652F71CCDD003080FA /* Qurany */,
+				0150A6652F71CCDD003080FA /* Furqan */,
 			);
-			name = Qurany;
+			name = Furqan;
 			packageProductDependencies = (
 			);
 			productName = Qurany;
-			productReference = 0150A6632F71CCDD003080FA /* Qurany.app */;
+			productReference = 0150A6632F71CCDD003080FA /* Furqan.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -85,7 +85,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 0150A65E2F71CCDD003080FA /* Build configuration list for PBXProject "Qurany" */;
+			buildConfigurationList = 0150A65E2F71CCDD003080FA /* Build configuration list for PBXProject "Furqan" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -99,7 +99,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				0150A6622F71CCDD003080FA /* Qurany */,
+				0150A6622F71CCDD003080FA /* Furqan */,
 			);
 		};
 /* End PBXProject section */
@@ -251,7 +251,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"Qurany/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "\"Furqan/Preview Content\"";
 				DEVELOPMENT_TEAM = MD39B8T5GT;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -281,7 +281,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"Qurany/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "\"Furqan/Preview Content\"";
 				DEVELOPMENT_TEAM = MD39B8T5GT;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -307,7 +307,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		0150A65E2F71CCDD003080FA /* Build configuration list for PBXProject "Qurany" */ = {
+		0150A65E2F71CCDD003080FA /* Build configuration list for PBXProject "Furqan" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				0150A6712F71CCDF003080FA /* Debug */,
@@ -316,7 +316,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		0150A6732F71CCDF003080FA /* Build configuration list for PBXNativeTarget "Qurany" */ = {
+		0150A6732F71CCDF003080FA /* Build configuration list for PBXNativeTarget "Furqan" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				0150A6742F71CCDF003080FA /* Debug */,

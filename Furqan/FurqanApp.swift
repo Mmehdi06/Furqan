@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct QuranyApp: App {
+struct FurqanApp: App {
     @State private var dataService = QuranDataService.shared
     @State private var isLoading = true
     @State private var minTimePassed = false
