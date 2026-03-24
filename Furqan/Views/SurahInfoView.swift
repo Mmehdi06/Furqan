@@ -3,7 +3,9 @@ import SwiftUI
 struct SurahInfoView: View {
     let surahNumber: Int
     @Environment(\.dismiss) private var dismiss
-    @State private var info: (name: String, text: String, shortText: String)?
+    @State private var name: String?
+    @State private var shortText: String = ""
+    @State private var sections: [(title: String, body: String)] = []
     @State private var isLoading = true
 
     var body: some View {
@@ -12,21 +14,27 @@ struct SurahInfoView: View {
                 if isLoading {
                     ProgressView("Loading...")
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if let info = info {
+                } else if !sections.isEmpty || !shortText.isEmpty {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 16) {
-                            // Short summary
-                            if !info.shortText.isEmpty {
-                                Text(info.shortText)
+                            if !shortText.isEmpty {
+                                Text(shortText)
                                     .font(.system(size: 16, weight: .medium))
                                     .foregroundStyle(.primary)
                                     .lineSpacing(4)
+
+                                Divider()
                             }
 
-                            if !info.text.isEmpty {
-                                Divider()
+                            ForEach(Array(sections.enumerated()), id: \.offset) { _, section in
+                                if !section.title.isEmpty {
+                                    Text(section.title)
+                                        .font(.system(size: 17, weight: .semibold))
+                                        .foregroundStyle(.primary)
+                                        .padding(.top, 4)
+                                }
 
-                                Text(info.text)
+                                Text(section.body)
                                     .font(.system(size: 15))
                                     .lineSpacing(6)
                                     .foregroundStyle(.primary.opacity(0.85))
@@ -46,7 +54,7 @@ struct SurahInfoView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
-            .navigationTitle(info?.name ?? "Surah Info")
+            .navigationTitle(name ?? "Surah Info")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -56,9 +64,14 @@ struct SurahInfoView: View {
         }
         .onAppear {
             Task.detached {
-                let result = TafsirService.shared.surahInfo(forSurah: surahNumber)
+                let service = TafsirService.shared
+                let info = service.surahInfo(forSurah: surahNumber)
+                let rawHTML = service.surahInfoHTML(forSurah: surahNumber)
+                let parsed = rawHTML.map { service.parseSections(from: $0) } ?? []
                 await MainActor.run {
-                    info = result
+                    name = info?.name
+                    shortText = info?.shortText ?? ""
+                    sections = parsed
                     isLoading = false
                 }
             }

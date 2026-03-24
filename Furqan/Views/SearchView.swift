@@ -170,8 +170,10 @@ struct SearchView: View {
         List(results) { result in
             Button {
                 saveToHistory(searchText)
-                onSelect(result.pageNumber, result.surah, result.ayah)
                 dismiss()
+                DispatchQueue.main.asyncAfter(deadline: .now()) {
+                    onSelect(result.pageNumber, result.surah, result.ayah)
+                }
             } label: {
                 resultRow(result)
             }

@@ -17,8 +17,9 @@ struct MushafPagerView: View {
     @State private var toastMessage = ""
     @State private var highlightedAyah: AyahHighlight?
 
-    // Tafsir & Surah Info sheets
+    // Tafsir, Translation & Surah Info sheets
     @State private var tafsirTarget: (surah: Int, ayah: Int)?
+    @State private var translationTarget: (surah: Int, ayah: Int)?
     @State private var surahInfoTarget: Int?
     @State private var showThemePicker = false
 
@@ -40,26 +41,29 @@ struct MushafPagerView: View {
             theme.pageBackground
                 .ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                TabView(selection: $currentPage) {
-                    ForEach(pages) { page in
-                        MushafPageView(
-                            page: page,
-                            highlightedAyah: highlightedAyah,
-                            onAyahAction: { action in
-                                handleAyahAction(action)
-                            }
-                        )
-                        .tag(page.id)
-                    }
+            TabView(selection: $currentPage) {
+                ForEach(pages) { page in
+                    MushafPageView(
+                        page: page,
+                        highlightedAyah: highlightedAyah,
+                        onAyahAction: { action in
+                            handleAyahAction(action)
+                        }
+                    )
+                    .tag(page.id)
                 }
-                .tabViewStyle(.page(indexDisplayMode: .never))
-                .environment(\.layoutDirection, .rightToLeft)
-                .onChange(of: currentPage) { _, newPage in
-                    UserDefaults.standard.set(newPage, forKey: lastPageKey)
-                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: .never))
+            .environment(\.layoutDirection, .rightToLeft)
+            .ignoresSafeArea(edges: .bottom)
+            .onChange(of: currentPage) { _, newPage in
+                UserDefaults.standard.set(newPage, forKey: lastPageKey)
+            }
 
-                // Toolbar
+            // Toolbar overlay
+            VStack {
+                Spacer()
+
                 ZStack {
                     // Centered page number
                     Text("\(currentPage)")
@@ -107,7 +111,7 @@ struct MushafPagerView: View {
                     }
                 }
                 .padding(.horizontal, 20)
-                .padding(.vertical, 8)
+                .padding(.bottom, 8)
             }
 
             // Toast
@@ -156,6 +160,13 @@ struct MushafPagerView: View {
                 .presentationDetents([.medium, .large])
         }
         .sheet(item: Binding(
+            get: { translationTarget.map { TranslationTarget(surah: $0.surah, ayah: $0.ayah) } },
+            set: { translationTarget = $0.map { ($0.surah, $0.ayah) } }
+        )) { target in
+            TranslationView(surah: target.surah, ayah: target.ayah)
+                .presentationDetents([.medium, .large])
+        }
+        .sheet(item: Binding(
             get: { surahInfoTarget.map { SurahInfoTarget(surah: $0) } },
             set: { surahInfoTarget = $0?.surah }
         )) { target in
@@ -168,6 +179,9 @@ struct MushafPagerView: View {
 
     private func handleAyahAction(_ action: AyahAction) {
         switch action {
+        case .showTranslation(let surah, let ayah):
+            translationTarget = (surah, ayah)
+
         case .showTafsir(let surah, let ayah):
             tafsirTarget = (surah, ayah)
 
@@ -191,13 +205,9 @@ struct MushafPagerView: View {
     // MARK: - Ayah Highlight
 
     private func highlightAyah(surah: Int, ayah: Int) {
-        withAnimation(.easeIn(duration: 0.3)) {
-            highlightedAyah = AyahHighlight(surah: surah, ayah: ayah)
-        }
+        highlightedAyah = AyahHighlight(surah: surah, ayah: ayah)
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-            withAnimation(.easeOut(duration: 0.5)) {
-                highlightedAyah = nil
-            }
+            highlightedAyah = nil
         }
     }
 }
@@ -205,6 +215,12 @@ struct MushafPagerView: View {
 // MARK: - Helper Types
 
 private struct TafsirTarget: Identifiable {
+    let id = UUID()
+    let surah: Int
+    let ayah: Int
+}
+
+private struct TranslationTarget: Identifiable {
     let id = UUID()
     let surah: Int
     let ayah: Int

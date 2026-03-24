@@ -90,7 +90,7 @@ struct MushafLineView: View {
             pageNumber: pageNumber,
             fontSize: fontSize,
             isCentered: line.isCentered,
-            highlightedAyah: highlightedAyah,
+            highlightedAyah: lineIsHighlighted() ? highlightedAyah : nil,
             highlightColor: theme.uiHighlightColor,
             selectiveInvert: theme.needsSelectiveInvert
         )
@@ -113,6 +113,12 @@ struct MushafLineView: View {
     @ViewBuilder
     private func ayahMenuItems(surah: Int, ayah: Int) -> some View {
         let isBookmarked = BookmarkManager.shared.isAyahBookmarked(surah: surah, ayah: ayah)
+
+        Button {
+            onAyahAction?(.showTranslation(surah: surah, ayah: ayah))
+        } label: {
+            Label("Translation (\(surah):\(ayah))", systemImage: "character.book.closed")
+        }
 
         Button {
             onAyahAction?(.showTafsir(surah: surah, ayah: ayah))
@@ -142,6 +148,7 @@ struct MushafLineView: View {
 // MARK: - Ayah Actions
 
 enum AyahAction {
+    case showTranslation(surah: Int, ayah: Int)
     case showTafsir(surah: Int, ayah: Int)
     case showSurahInfo(surah: Int)
     case toggleBookmark(surah: Int, ayah: Int, page: Int)

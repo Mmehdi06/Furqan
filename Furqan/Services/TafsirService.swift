@@ -6,6 +6,7 @@ final class TafsirService {
 
     private var tafsirDB: OpaquePointer?
     private var surahInfoDB: OpaquePointer?
+    private var translationDB: OpaquePointer?
 
     private init() {}
 
@@ -17,11 +18,15 @@ final class TafsirService {
         if surahInfoDB == nil {
             surahInfoDB = openDB("surahInfo")
         }
+        if translationDB == nil {
+            translationDB = openDB("translation-fr")
+        }
     }
 
     deinit {
         if let db = tafsirDB { sqlite3_close(db) }
         if let db = surahInfoDB { sqlite3_close(db) }
+        if let db = translationDB { sqlite3_close(db) }
     }
 
     // MARK: - Tafsir (Ibn Kathir)
@@ -79,6 +84,88 @@ final class TafsirService {
         return nil
     }
 
+    // MARK: - Translation
+
+    func translation(forSurah surah: Int, ayah: Int) -> String? {
+        guard let db = translationDB else { return nil }
+
+        let sql = "SELECT text FROM translation WHERE sura = ? AND ayah = ?;"
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { return nil }
+        defer { sqlite3_finalize(stmt) }
+
+        sqlite3_bind_int(stmt, 1, Int32(surah))
+        sqlite3_bind_int(stmt, 2, Int32(ayah))
+
+        if sqlite3_step(stmt) == SQLITE_ROW,
+           let cStr = sqlite3_column_text(stmt, 0) {
+            var text = String(cString: cStr)
+            // Remove surrounding quotes if present
+            if text.hasPrefix("\"") && text.hasSuffix("\"") {
+                text = String(text.dropFirst().dropLast())
+            }
+            // Remove inline footnotes in [[ ]]
+            text = text.replacingOccurrences(
+                of: "\\[\\[.*?\\]\\]",
+                with: "",
+                options: .regularExpression
+            )
+            return text.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return nil
+    }
+
+    /// Get raw HTML text for surah info (before stripping)
+    func surahInfoHTML(forSurah surah: Int) -> String? {
+        guard let db = surahInfoDB else { return nil }
+
+        let sql = "SELECT text FROM surah_infos WHERE surah_number = ?;"
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { return nil }
+        defer { sqlite3_finalize(stmt) }
+
+        sqlite3_bind_int(stmt, 1, Int32(surah))
+
+        if sqlite3_step(stmt) == SQLITE_ROW,
+           let cStr = sqlite3_column_text(stmt, 0) {
+            return String(cString: cStr)
+        }
+        return nil
+    }
+
+    /// Parse HTML into sections: [(title, body)] for structured display
+    func parseSections(from html: String) -> [(title: String, body: String)] {
+        var sections: [(String, String)] = []
+
+        // Split by <h2> or <h3> tags
+        let pattern = "<h[1-6][^>]*>(.*?)</h[1-6]>"
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) else {
+            return [("", stripHTML(html))]
+        }
+
+        let nsHTML = html as NSString
+        let matches = regex.matches(in: html, range: NSRange(location: 0, length: nsHTML.length))
+
+        if matches.isEmpty {
+            return [("", stripHTML(html))]
+        }
+
+        for (i, match) in matches.enumerated() {
+            let title = nsHTML.substring(with: match.range(at: 1)).trimmingCharacters(in: .whitespacesAndNewlines)
+
+            let bodyStart = match.range.upperBound
+            let bodyEnd = (i + 1 < matches.count) ? matches[i + 1].range.location : nsHTML.length
+            let bodyHTML = nsHTML.substring(with: NSRange(location: bodyStart, length: bodyEnd - bodyStart))
+            let body = stripHTML(bodyHTML).trimmingCharacters(in: .whitespacesAndNewlines)
+
+            if !body.isEmpty {
+                sections.append((title, body))
+            }
+        }
+
+        return sections
+    }
+
     // MARK: - Helpers
 
     private func openDB(_ name: String) -> OpaquePointer? {
@@ -89,7 +176,16 @@ final class TafsirService {
     }
 
     private func stripHTML(_ html: String) -> String {
+        // Convert headers to uppercase with line breaks
         var text = html.replacingOccurrences(
+            of: "<h[1-6][^>]*>(.*?)</h[1-6]>",
+            with: "\n\n$1\n",
+            options: .regularExpression
+        )
+        // Convert paragraph breaks
+        text = text.replacingOccurrences(of: "</p>", with: "\n\n")
+        // Strip remaining tags
+        text = text.replacingOccurrences(
             of: "<[^>]+>",
             with: "",
             options: .regularExpression
