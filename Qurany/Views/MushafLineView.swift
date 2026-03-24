@@ -58,13 +58,9 @@ struct MushafLineView: View {
     // MARK: - Basmallah
 
     private var basmallahView: some View {
-        let text = line.words.map(\.text).joined()
-        return QPCTextLine(
-            text: text,
-            pageNumber: pageNumber,
-            fontSize: fontSize,
-            isCentered: true
-        )
+        Text("بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ")
+            .font(.custom("KFGQPCHAFSUthmanicScript-Regula", size: fontSize))
+            .frame(maxWidth: .infinity)
     }
 
     // MARK: - Ayah Line (QPC glyph font)

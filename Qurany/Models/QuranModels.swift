@@ -1,5 +1,7 @@
 import Foundation
 
+// MARK: - Line & Page Models
+
 enum LineType: String {
     case ayah
     case basmallah
@@ -13,11 +15,6 @@ struct QuranWord: Identifiable {
     let ayah: Int
     let wordPosition: Int
     let text: String
-
-    var isVerseNumber: Bool {
-        let arabicIndicDigits = CharacterSet(charactersIn: "٠١٢٣٤٥٦٧٨٩")
-        return text.unicodeScalars.allSatisfy { arabicIndicDigits.contains($0) }
-    }
 }
 
 struct QuranLine: Identifiable {
@@ -32,4 +29,34 @@ struct QuranLine: Identifiable {
 struct QuranPage: Identifiable {
     let id: Int
     let lines: [QuranLine]
+}
+
+// MARK: - Surah Metadata
+
+struct SurahInfo: Identifiable {
+    let id: Int
+    let name: String          // transliterated
+    let nameSimple: String    // simple English
+    let nameArabic: String    // Arabic
+    let revelationOrder: Int
+    let revelationPlace: String // "makkah" or "madinah"
+    let versesCount: Int
+    let bismillahPre: Bool
+    var startPage: Int = 1    // filled from layout DB
+}
+
+// MARK: - Bookmark
+
+struct Bookmark: Identifiable, Codable {
+    let id: UUID
+    let pageNumber: Int
+    let surahName: String
+    let dateCreated: Date
+
+    init(pageNumber: Int, surahName: String) {
+        self.id = UUID()
+        self.pageNumber = pageNumber
+        self.surahName = surahName
+        self.dateCreated = Date()
+    }
 }

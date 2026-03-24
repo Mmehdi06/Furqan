@@ -16,7 +16,7 @@ struct QuranyApp: App {
                     ProgressView("Loading Quran...")
                         .font(.headline)
                 } else {
-                    MushafPagerView(pages: dataService.pages)
+                    MushafPagerView(pages: dataService.pages, surahs: dataService.surahs)
                 }
             }
             .task {

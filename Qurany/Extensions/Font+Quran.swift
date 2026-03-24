@@ -16,9 +16,11 @@ final class QuranFontManager {
         guard !staticFontsRegistered else { return }
         staticFontsRegistered = true
 
-        if let url = Bundle.main.url(forResource: "QCF_SurahHeader_COLOR-Regular", withExtension: "ttf") {
-            var error: Unmanaged<CFError>?
-            CTFontManagerRegisterFontsForURL(url as CFURL, .process, &error)
+        for fontFile in ["QCF_SurahHeader_COLOR-Regular", "UthmanicHafs_V22"] {
+            if let url = Bundle.main.url(forResource: fontFile, withExtension: "ttf") {
+                var error: Unmanaged<CFError>?
+                CTFontManagerRegisterFontsForURL(url as CFURL, .process, &error)
+            }
         }
     }
 

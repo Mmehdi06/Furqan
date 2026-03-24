@@ -6,7 +6,13 @@ final class QuranDataService {
 
     private var contentDB: OpaquePointer?
     private var layoutDB: OpaquePointer?
+    private var metadataDB: OpaquePointer?
+
     private(set) var pages: [QuranPage] = []
+    private(set) var surahs: [SurahInfo] = []
+
+    /// Map from surah number to start page
+    private(set) var surahStartPages: [Int: Int] = [:]
 
     private init() {}
 
@@ -14,6 +20,8 @@ final class QuranDataService {
         openDatabases()
         let words = loadWords()
         pages = buildPages(words: words)
+        surahStartPages = loadSurahStartPages()
+        surahs = loadSurahMetadata()
         closeDatabases()
     }
 
@@ -22,11 +30,13 @@ final class QuranDataService {
     private func openDatabases() {
         contentDB = openDatabase(named: "qpc-v4", ext: "db")
         layoutDB = openDatabase(named: "mushafLayout", ext: "db")
+        metadataDB = openDatabase(named: "surahMetadata", ext: "db")
     }
 
     private func closeDatabases() {
         if let db = contentDB { sqlite3_close(db); contentDB = nil }
         if let db = layoutDB { sqlite3_close(db); layoutDB = nil }
+        if let db = metadataDB { sqlite3_close(db); metadataDB = nil }
     }
 
     private func openDatabase(named name: String, ext: String) -> OpaquePointer? {
@@ -69,6 +79,62 @@ final class QuranDataService {
                 wordPosition: wordPos,
                 text: text
             )
+        }
+        return result
+    }
+
+    // MARK: - Load Surah Start Pages
+
+    private func loadSurahStartPages() -> [Int: Int] {
+        guard let db = layoutDB else { return [:] }
+        let query = "SELECT surah_number, MIN(page_number) FROM pages WHERE line_type='surah_name' AND surah_number IS NOT NULL GROUP BY surah_number;"
+        var stmt: OpaquePointer?
+
+        guard sqlite3_prepare_v2(db, query, -1, &stmt, nil) == SQLITE_OK else { return [:] }
+        defer { sqlite3_finalize(stmt) }
+
+        var result: [Int: Int] = [:]
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            let surah = Int(sqlite3_column_int(stmt, 0))
+            let page = Int(sqlite3_column_int(stmt, 1))
+            result[surah] = page
+        }
+        return result
+    }
+
+    // MARK: - Load Surah Metadata
+
+    private func loadSurahMetadata() -> [SurahInfo] {
+        guard let db = metadataDB else { return [] }
+        let query = "SELECT id, name, name_simple, name_arabic, revelation_order, revelation_place, verses_count, bismillah_pre FROM chapters ORDER BY id;"
+        var stmt: OpaquePointer?
+
+        guard sqlite3_prepare_v2(db, query, -1, &stmt, nil) == SQLITE_OK else { return [] }
+        defer { sqlite3_finalize(stmt) }
+
+        var result: [SurahInfo] = []
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            let id = Int(sqlite3_column_int(stmt, 0))
+            let name = String(cString: sqlite3_column_text(stmt, 1))
+            let nameSimple = String(cString: sqlite3_column_text(stmt, 2))
+            let nameArabic = String(cString: sqlite3_column_text(stmt, 3))
+            let revelationOrder = Int(sqlite3_column_int(stmt, 4))
+            let revelationPlace = String(cString: sqlite3_column_text(stmt, 5))
+            let versesCount = Int(sqlite3_column_int(stmt, 6))
+            let bismillahPre = sqlite3_column_int(stmt, 7) != 0
+
+            var surah = SurahInfo(
+                id: id,
+                name: name,
+                nameSimple: nameSimple,
+                nameArabic: nameArabic,
+                revelationOrder: revelationOrder,
+                revelationPlace: revelationPlace,
+                versesCount: versesCount,
+                bismillahPre: bismillahPre
+            )
+            surah.startPage = surahStartPages[id] ?? 1
+            result.append(surah)
         }
         return result
     }
@@ -124,5 +190,16 @@ final class QuranDataService {
         return pageDict.keys.sorted().map { pageNum in
             QuranPage(id: pageNum, lines: pageDict[pageNum] ?? [])
         }
+    }
+
+    // MARK: - Helpers
+
+    /// Find which surah a given page belongs to
+    func surahName(forPage page: Int) -> String {
+        // Find the surah whose start page is <= this page
+        if let surah = surahs.last(where: { $0.startPage <= page }) {
+            return surah.nameArabic
+        }
+        return ""
     }
 }
