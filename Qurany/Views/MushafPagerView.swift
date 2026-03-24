@@ -20,8 +20,11 @@ struct MushafPagerView: View {
     // Tafsir & Surah Info sheets
     @State private var tafsirTarget: (surah: Int, ayah: Int)?
     @State private var surahInfoTarget: Int?
+    @State private var showThemePicker = false
 
     @StateObject private var bookmarkManager = BookmarkManager.shared
+    @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.readingTheme) private var theme
 
     private let lastPageKey = "quran_last_page"
 
@@ -34,6 +37,9 @@ struct MushafPagerView: View {
 
     var body: some View {
         ZStack {
+            theme.pageBackground
+                .ignoresSafeArea()
+
             TabView(selection: $currentPage) {
                 ForEach(pages) { page in
                     MushafPageView(
@@ -56,6 +62,7 @@ struct MushafPagerView: View {
             // Overlay UI
             VStack {
                 Spacer()
+                Spacer()
 
                 HStack {
                     Button {
@@ -63,7 +70,7 @@ struct MushafPagerView: View {
                     } label: {
                         Image(systemName: "list.bullet")
                             .font(.body)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(theme.secondaryTextColor)
                             .padding(8)
                             .background(.ultraThinMaterial, in: Circle())
                     }
@@ -73,7 +80,17 @@ struct MushafPagerView: View {
                     } label: {
                         Image(systemName: "magnifyingglass")
                             .font(.body)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(theme.secondaryTextColor)
+                            .padding(8)
+                            .background(.ultraThinMaterial, in: Circle())
+                    }
+
+                    Button {
+                        showThemePicker = true
+                    } label: {
+                        Image(systemName: themeManager.current.icon)
+                            .font(.body)
+                            .foregroundStyle(theme.secondaryTextColor)
                             .padding(8)
                             .background(.ultraThinMaterial, in: Circle())
                     }
@@ -82,11 +99,14 @@ struct MushafPagerView: View {
 
                     Text("\(currentPage)")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(theme.secondaryTextColor)
                         .padding(.vertical, 4)
                         .padding(.horizontal, 12)
                         .background(.ultraThinMaterial, in: Capsule())
 
+                    Spacer()
+                    Spacer()
+                    Spacer()
                     Spacer()
 
                     Button {
@@ -94,7 +114,7 @@ struct MushafPagerView: View {
                     } label: {
                         Image(systemName: bookmarkManager.isBookmarked(page: currentPage) ? "bookmark.fill" : "bookmark")
                             .font(.body)
-                            .foregroundStyle(bookmarkManager.isBookmarked(page: currentPage) ? .orange : .secondary)
+                            .foregroundStyle(bookmarkManager.isBookmarked(page: currentPage) ? .orange : theme.secondaryTextColor)
                             .padding(8)
                             .background(.ultraThinMaterial, in: Circle())
                     }
@@ -136,6 +156,10 @@ struct MushafPagerView: View {
                 currentPage = page
                 highlightAyah(surah: surah, ayah: ayah)
             }
+        }
+        .sheet(isPresented: $showThemePicker) {
+            ThemePickerView(themeManager: themeManager)
+                .presentationDetents([.medium])
         }
         .sheet(item: Binding(
             get: { tafsirTarget.map { TafsirTarget(surah: $0.surah, ayah: $0.ayah) } },

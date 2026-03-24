@@ -5,6 +5,7 @@ struct QuranyApp: App {
     @State private var dataService = QuranDataService.shared
     @State private var isLoading = true
     @State private var minTimePassed = false
+    @StateObject private var themeManager = ThemeManager.shared
 
     init() {
         QuranFontManager.shared.registerStaticFonts()
@@ -21,6 +22,9 @@ struct QuranyApp: App {
                 }
             }
             .animation(.easeOut(duration: 0.4), value: isLoading || !minTimePassed)
+            .environment(\.readingTheme, themeManager.current)
+            .environmentObject(themeManager)
+            .preferredColorScheme(themeManager.current.colorScheme)
             .task {
                 // Start minimum 2s timer and data loading in parallel
                 async let timer: () = Task.sleep(nanoseconds: 2_000_000_000)
@@ -42,22 +46,23 @@ struct QuranyApp: App {
 
 struct SplashScreen: View {
     @State private var opacity: Double = 0
+    @Environment(\.readingTheme) private var theme
 
     var body: some View {
         ZStack {
-            Color(.systemBackground)
+            theme.pageBackground
                 .ignoresSafeArea()
 
             VStack(spacing: 32) {
                 // App logo
                 Text("QURAN.")
                     .font(.custom("Oi-Regular", size: 48))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(theme.textColor)
 
                 // Bismillah
                 Text("بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ")
                     .font(.custom("KFGQPCHAFSUthmanicScript-Regula", size: 22))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(theme.secondaryTextColor)
             }
             .opacity(opacity)
         }

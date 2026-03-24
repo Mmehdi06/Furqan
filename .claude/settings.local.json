@@ -41,7 +41,13 @@
       "Bash(ffmpeg -i \"/Users/mehdimerkachi/Downloads/ScreenRecording_03-23-2026 23-12-05_1.MP4\" -vf \"select=eq\\(pict_type\\\\,I\\),scale=460:-1\" -vsync vfr -frames:v 6 /tmp/swipe_ref_%02d.png)",
       "Bash(brew list:*)",
       "Bash(/opt/homebrew/bin/ffmpeg -version)",
-      "Bash(git init:*)"
+      "Bash(git init:*)",
+      "Bash(git commit:*)",
+      "Bash(git add:*)",
+      "Bash(sqlite3 \"/Users/mehdimerkachi/Downloads/en-tafisr-ibn-kathir.db\" \"SELECT * FROM tafsir LIMIT 3;\")",
+      "Bash(sqlite3 \"/Users/mehdimerkachi/Downloads/surah-info-en.db\" \".tables\")",
+      "Bash(sqlite3 \"/Users/mehdimerkachi/Downloads/surah-info-en.db\" \".schema\")",
+      "Bash(sqlite3 \"/Users/mehdimerkachi/Downloads/surah-info-en.db\" \"SELECT surah_number, surah_name, substr\\(short_text, 1, 100\\) FROM surah_infos LIMIT 3;\")"
     ]
   }
 }

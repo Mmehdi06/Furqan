@@ -4,6 +4,7 @@ struct MushafPageView: View {
     let page: QuranPage
     let highlightedAyah: AyahHighlight?
     let onAyahAction: ((AyahAction) -> Void)?
+    @Environment(\.readingTheme) private var theme
 
     init(page: QuranPage, highlightedAyah: AyahHighlight?, onAyahAction: ((AyahAction) -> Void)? = nil) {
         self.page = page
@@ -39,5 +40,6 @@ struct MushafPageView: View {
         .padding(.horizontal, 16)
         .padding(.top, 24)
         .padding(.bottom, 32)
+        .background(theme.pageBackground)
     }
 }
