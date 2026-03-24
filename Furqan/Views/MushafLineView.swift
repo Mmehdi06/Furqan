@@ -90,17 +90,9 @@ struct MushafLineView: View {
             pageNumber: pageNumber,
             fontSize: fontSize,
             isCentered: line.isCentered,
+            highlightedAyah: highlightedAyah,
+            highlightColor: theme.uiHighlightColor,
             selectiveInvert: theme.needsSelectiveInvert
-        )
-        .background(
-            Group {
-                if lineIsHighlighted() {
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(theme.swiftHighlightColor)
-                        .padding(.horizontal, -4)
-                        .padding(.vertical, 1)
-                }
-            }
         )
         .contentShape(Rectangle())
         .contextMenu {
@@ -162,6 +154,8 @@ struct QPCTextLine: UIViewRepresentable {
     let pageNumber: Int
     let fontSize: CGFloat
     let isCentered: Bool
+    var highlightedAyah: AyahHighlight? = nil
+    var highlightColor: UIColor? = nil
     var selectiveInvert: Bool = false
 
     func makeUIView(context: Context) -> QPCGlyphView {
@@ -183,7 +177,12 @@ struct QPCTextLine: UIViewRepresentable {
 
         let attributed = NSMutableAttributedString()
         for word in words {
-            attributed.append(NSAttributedString(string: word.text, attributes: baseAttributes))
+            var attrs = baseAttributes
+            if let highlight = highlightedAyah, let color = highlightColor,
+               word.surah == highlight.surah && word.ayah == highlight.ayah {
+                attrs[.backgroundColor] = color
+            }
+            attributed.append(NSAttributedString(string: word.text, attributes: attrs))
         }
 
         view.update(attributedText: attributed, selectiveInvert: selectiveInvert)
