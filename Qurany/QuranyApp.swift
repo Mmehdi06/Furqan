@@ -55,7 +55,7 @@ struct SplashScreen: View {
 
             VStack(spacing: 32) {
                 // App logo
-                Text("QURAN.")
+                Text("FURQAN.")
                     .font(.custom("Oi-Regular", size: 48))
                     .foregroundStyle(theme.textColor)
 
