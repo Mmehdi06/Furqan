@@ -76,6 +76,11 @@ struct MushafLineView: View {
 
     // MARK: - Ayah Line with context menu
 
+    private func lineIsHighlighted() -> Bool {
+        guard let highlight = highlightedAyah else { return false }
+        return line.ayahsOnLine.contains { $0.surah == highlight.surah && $0.ayah == highlight.ayah }
+    }
+
     @ViewBuilder
     private var ayahLineView: some View {
         let ayahs = line.ayahsOnLine
@@ -85,9 +90,17 @@ struct MushafLineView: View {
             pageNumber: pageNumber,
             fontSize: fontSize,
             isCentered: line.isCentered,
-            highlightedAyah: highlightedAyah,
-            highlightColor: theme.highlightColor,
             selectiveInvert: theme.needsSelectiveInvert
+        )
+        .background(
+            Group {
+                if lineIsHighlighted() {
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(theme.swiftHighlightColor)
+                        .padding(.horizontal, -4)
+                        .padding(.vertical, 1)
+                }
+            }
         )
         .contentShape(Rectangle())
         .contextMenu {
@@ -149,8 +162,6 @@ struct QPCTextLine: UIViewRepresentable {
     let pageNumber: Int
     let fontSize: CGFloat
     let isCentered: Bool
-    let highlightedAyah: AyahHighlight?
-    var highlightColor: UIColor = UIColor.systemYellow.withAlphaComponent(0.35)
     var selectiveInvert: Bool = false
 
     func makeUIView(context: Context) -> QPCGlyphView {
@@ -171,14 +182,8 @@ struct QPCTextLine: UIViewRepresentable {
         ]
 
         let attributed = NSMutableAttributedString()
-
         for word in words {
-            var attrs = baseAttributes
-            if let highlight = highlightedAyah,
-               word.surah == highlight.surah && word.ayah == highlight.ayah {
-                attrs[.backgroundColor] = highlightColor
-            }
-            attributed.append(NSAttributedString(string: word.text, attributes: attrs))
+            attributed.append(NSAttributedString(string: word.text, attributes: baseAttributes))
         }
 
         view.update(attributedText: attributed, selectiveInvert: selectiveInvert)

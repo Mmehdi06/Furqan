@@ -40,63 +40,28 @@ struct MushafPagerView: View {
             theme.pageBackground
                 .ignoresSafeArea()
 
-            TabView(selection: $currentPage) {
-                ForEach(pages) { page in
-                    MushafPageView(
-                        page: page,
-                        highlightedAyah: highlightedAyah,
-                        onAyahAction: { action in
-                            handleAyahAction(action)
-                        }
-                    )
-                    .tag(page.id)
+            VStack(spacing: 0) {
+                TabView(selection: $currentPage) {
+                    ForEach(pages) { page in
+                        MushafPageView(
+                            page: page,
+                            highlightedAyah: highlightedAyah,
+                            onAyahAction: { action in
+                                handleAyahAction(action)
+                            }
+                        )
+                        .tag(page.id)
+                    }
                 }
-            }
-            .tabViewStyle(.page(indexDisplayMode: .never))
-            .environment(\.layoutDirection, .rightToLeft)
-            .ignoresSafeArea(edges: .bottom)
-            .onChange(of: currentPage) { _, newPage in
-                UserDefaults.standard.set(newPage, forKey: lastPageKey)
-            }
+                .tabViewStyle(.page(indexDisplayMode: .never))
+                .environment(\.layoutDirection, .rightToLeft)
+                .onChange(of: currentPage) { _, newPage in
+                    UserDefaults.standard.set(newPage, forKey: lastPageKey)
+                }
 
-            // Overlay UI
-            VStack {
-                Spacer()
-                Spacer()
-
-                HStack {
-                    Button {
-                        showSurahIndex = true
-                    } label: {
-                        Image(systemName: "list.bullet")
-                            .font(.body)
-                            .foregroundStyle(theme.secondaryTextColor)
-                            .padding(8)
-                            .background(.ultraThinMaterial, in: Circle())
-                    }
-
-                    Button {
-                        showSearch = true
-                    } label: {
-                        Image(systemName: "magnifyingglass")
-                            .font(.body)
-                            .foregroundStyle(theme.secondaryTextColor)
-                            .padding(8)
-                            .background(.ultraThinMaterial, in: Circle())
-                    }
-
-                    Button {
-                        showThemePicker = true
-                    } label: {
-                        Image(systemName: themeManager.current.icon)
-                            .font(.body)
-                            .foregroundStyle(theme.secondaryTextColor)
-                            .padding(8)
-                            .background(.ultraThinMaterial, in: Circle())
-                    }
-
-                    Spacer()
-
+                // Toolbar
+                ZStack {
+                    // Centered page number
                     Text("\(currentPage)")
                         .font(.caption)
                         .foregroundStyle(theme.secondaryTextColor)
@@ -104,23 +69,45 @@ struct MushafPagerView: View {
                         .padding(.horizontal, 12)
                         .background(.ultraThinMaterial, in: Capsule())
 
-                    Spacer()
-                    Spacer()
-                    Spacer()
-                    Spacer()
+                    // Left and right buttons
+                    HStack {
+                        Button { showSurahIndex = true } label: {
+                            Image(systemName: "list.bullet")
+                                .font(.body)
+                                .foregroundStyle(theme.secondaryTextColor)
+                                .padding(8)
+                                .background(.ultraThinMaterial, in: Circle())
+                        }
 
-                    Button {
-                        showBookmarks = true
-                    } label: {
-                        Image(systemName: bookmarkManager.isBookmarked(page: currentPage) ? "bookmark.fill" : "bookmark")
-                            .font(.body)
-                            .foregroundStyle(bookmarkManager.isBookmarked(page: currentPage) ? .orange : theme.secondaryTextColor)
-                            .padding(8)
-                            .background(.ultraThinMaterial, in: Circle())
+                        Button { showSearch = true } label: {
+                            Image(systemName: "magnifyingglass")
+                                .font(.body)
+                                .foregroundStyle(theme.secondaryTextColor)
+                                .padding(8)
+                                .background(.ultraThinMaterial, in: Circle())
+                        }
+
+                        Button { showThemePicker = true } label: {
+                            Image(systemName: themeManager.current.icon)
+                                .font(.body)
+                                .foregroundStyle(theme.secondaryTextColor)
+                                .padding(8)
+                                .background(.ultraThinMaterial, in: Circle())
+                        }
+
+                        Spacer()
+
+                        Button { showBookmarks = true } label: {
+                            Image(systemName: bookmarkManager.isBookmarked(page: currentPage) ? "bookmark.fill" : "bookmark")
+                                .font(.body)
+                                .foregroundStyle(bookmarkManager.isBookmarked(page: currentPage) ? .orange : theme.secondaryTextColor)
+                                .padding(8)
+                                .background(.ultraThinMaterial, in: Circle())
+                        }
                     }
                 }
                 .padding(.horizontal, 20)
-                .padding(.bottom, 8)
+                .padding(.vertical, 8)
             }
 
             // Toast

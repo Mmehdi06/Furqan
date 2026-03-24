@@ -38,8 +38,8 @@ struct MushafPageView: View {
             .frame(width: geo.size.width, height: geo.size.height)
         }
         .padding(.horizontal, 16)
-        .padding(.top, 24)
-        .padding(.bottom, 32)
+        .padding(.top, 16)
+        .padding(.bottom, 8)
         .background(theme.pageBackground)
     }
 }

@@ -75,12 +75,12 @@ enum ReadingTheme: String, CaseIterable, Identifiable, Codable {
         }
     }
 
-    var highlightColor: UIColor {
+    var swiftHighlightColor: Color {
         switch self {
-        case .light:  return UIColor.systemYellow.withAlphaComponent(0.35)
-        case .dark:   return UIColor.systemYellow.withAlphaComponent(0.25)
-        case .sepia:  return UIColor(red: 0.85, green: 0.75, blue: 0.50, alpha: 0.40)
-        case .amoled: return UIColor.systemYellow.withAlphaComponent(0.20)
+        case .light:  return Color(red: 0.85, green: 0.93, blue: 1.0)
+        case .dark:   return Color(red: 0.20, green: 0.30, blue: 0.45)
+        case .sepia:  return Color(red: 0.82, green: 0.75, blue: 0.62)
+        case .amoled: return Color(red: 0.15, green: 0.25, blue: 0.40)
         }
     }
 
