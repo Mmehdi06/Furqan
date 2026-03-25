@@ -81,6 +81,52 @@ final class QuranSearchService {
         return results
     }
 
+    /// Look up a specific verse by surah:ayah reference (e.g. "23:65")
+    func lookupByReference(_ query: String) -> [SearchResult]? {
+        let pattern = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        let parts = pattern.split(separator: ":")
+        guard parts.count == 2,
+              let surah = Int(parts[0]), let ayah = Int(parts[1]),
+              surah >= 1, surah <= 114, ayah >= 1
+        else { return nil }
+
+        guard let db = db else { return nil }
+
+        let sql = """
+            SELECT v.surah, v.ayah, v.verse_text, v.first_word_id
+            FROM verses v
+            WHERE v.surah = ? AND v.ayah = ?
+            LIMIT 1
+            """
+
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { return nil }
+        defer { sqlite3_finalize(stmt) }
+
+        sqlite3_bind_int(stmt, 1, Int32(surah))
+        sqlite3_bind_int(stmt, 2, Int32(ayah))
+
+        let surahs = QuranDataService.shared.surahs
+
+        var results: [SearchResult] = []
+        if sqlite3_step(stmt) == SQLITE_ROW {
+            let verseText = String(cString: sqlite3_column_text(stmt, 2))
+            let firstWordId = Int(sqlite3_column_int(stmt, 3))
+            let page = pageNumber(forWordId: firstWordId)
+            let surahName = surahs.first(where: { $0.id == surah })?.nameArabic ?? ""
+
+            results.append(SearchResult(
+                surah: surah,
+                ayah: ayah,
+                verseText: verseText,
+                pageNumber: page,
+                surahName: surahName
+            ))
+        }
+
+        return results
+    }
+
     // MARK: - Page Lookup
 
     private func pageNumber(forWordId wordId: Int) -> Int {

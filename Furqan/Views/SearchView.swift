@@ -231,7 +231,11 @@ struct SearchView: View {
             await MainActor.run { isSearching = true }
 
             let searchResults = await Task.detached {
-                QuranSearchService.shared.search(query: trimmed)
+                // Check for surah:ayah reference (e.g. "23:65")
+                if let refResults = QuranSearchService.shared.lookupByReference(trimmed) {
+                    return refResults
+                }
+                return QuranSearchService.shared.search(query: trimmed)
             }.value
 
             guard !Task.isCancelled else { return }
