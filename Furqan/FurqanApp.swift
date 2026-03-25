@@ -5,6 +5,7 @@ struct FurqanApp: App {
     @State private var dataService = QuranDataService.shared
     @State private var isLoading = true
     @State private var minTimePassed = false
+    @State private var showOnboarding = !UserDefaults.standard.bool(forKey: "hasSeenOnboarding")
     @StateObject private var themeManager = ThemeManager.shared
 
     init() {
@@ -16,12 +17,22 @@ struct FurqanApp: App {
             ZStack {
                 if isLoading || !minTimePassed {
                     SplashScreen()
+                } else if showOnboarding {
+                    OnboardingView {
+                        UserDefaults.standard.set(true, forKey: "hasSeenOnboarding")
+                        withAnimation(.easeInOut(duration: 0.5)) {
+                            showOnboarding = false
+                        }
+                    }
+                    .transition(.opacity)
                 } else {
                     MushafPagerView(pages: dataService.pages, surahs: dataService.surahs)
                         .transition(.opacity)
                 }
             }
-            .animation(.easeOut(duration: 0.4), value: isLoading || !minTimePassed)
+            .animation(.easeOut(duration: 0.4), value: isLoading)
+            .animation(.easeOut(duration: 0.4), value: minTimePassed)
+            .animation(.easeOut(duration: 0.5), value: showOnboarding)
             .environment(\.readingTheme, themeManager.current)
             .environmentObject(themeManager)
             .preferredColorScheme(themeManager.current.colorScheme)

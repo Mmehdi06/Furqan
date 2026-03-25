@@ -29,6 +29,10 @@ struct MushafPagerView: View {
 
     private let lastPageKey = "quran_last_page"
 
+    private var currentSurahName: String {
+        surahs.last(where: { $0.startPage <= currentPage })?.nameSimple ?? ""
+    }
+
     init(pages: [QuranPage], surahs: [SurahInfo]) {
         self.pages = pages
         self.surahs = surahs
@@ -65,13 +69,18 @@ struct MushafPagerView: View {
                 Spacer()
 
                 ZStack {
-                    // Centered page number
-                    Text("\(currentPage)")
-                        .font(.caption)
-                        .foregroundStyle(theme.secondaryTextColor)
-                        .padding(.vertical, 4)
-                        .padding(.horizontal, 12)
-                        .background(.ultraThinMaterial, in: Capsule())
+                    // Centered page number + surah name
+                    HStack(spacing: 6) {
+                        Text(currentSurahName)
+                            .font(.caption2)
+                            .foregroundStyle(theme.tertiaryTextColor)
+                        Text("\(currentPage)")
+                            .font(.caption)
+                            .foregroundStyle(theme.secondaryTextColor)
+                    }
+                    .padding(.vertical, 4)
+                    .padding(.horizontal, 12)
+                    .background(.ultraThinMaterial, in: Capsule())
 
                     // Left and right buttons
                     HStack {
