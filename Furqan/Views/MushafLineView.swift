@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreText
 
 struct MushafLineView: View {
     let line: QuranLine
@@ -6,14 +7,16 @@ struct MushafLineView: View {
     let pageNumber: Int
     let highlightedAyah: AyahHighlight?
     let onAyahAction: ((AyahAction) -> Void)?
+    let allLines: [QuranLine]
     @Environment(\.readingTheme) private var theme
 
-    init(line: QuranLine, fontSize: CGFloat, pageNumber: Int, highlightedAyah: AyahHighlight?, onAyahAction: ((AyahAction) -> Void)? = nil) {
+    init(line: QuranLine, fontSize: CGFloat, pageNumber: Int, highlightedAyah: AyahHighlight?, onAyahAction: ((AyahAction) -> Void)? = nil, allLines: [QuranLine] = []) {
         self.line = line
         self.fontSize = fontSize
         self.pageNumber = pageNumber
         self.highlightedAyah = highlightedAyah
         self.onAyahAction = onAyahAction
+        self.allLines = allLines
     }
 
     var body: some View {
@@ -74,7 +77,7 @@ struct MushafLineView: View {
             .frame(maxWidth: .infinity)
     }
 
-    // MARK: - Ayah Line with context menu
+    // MARK: - Ayah Line
 
     private func lineIsHighlighted() -> Bool {
         guard let highlight = highlightedAyah else { return false }
@@ -83,8 +86,6 @@ struct MushafLineView: View {
 
     @ViewBuilder
     private var ayahLineView: some View {
-        let ayahs = line.ayahsOnLine
-
         QPCTextLine(
             words: line.words,
             pageNumber: pageNumber,
@@ -92,56 +93,12 @@ struct MushafLineView: View {
             isCentered: line.isCentered,
             highlightedAyah: lineIsHighlighted() ? highlightedAyah : nil,
             highlightColor: theme.uiHighlightColor,
-            isDarkMode: theme.needsSelectiveInvert
+            isDarkMode: theme.needsSelectiveInvert,
+            allLines: allLines,
+            pageBackground: UIColor(theme.pageBackground),
+            onAyahAction: onAyahAction,
+            theme: theme
         )
-        .contentShape(Rectangle())
-        .contextMenu {
-            if ayahs.count == 1, let a = ayahs.first {
-                // Single ayah — show actions directly
-                ayahMenuItems(surah: a.surah, ayah: a.ayah)
-            } else {
-                // Multiple ayahs — show sub-menu per ayah
-                ForEach(ayahs, id: \.ayah) { a in
-                    Menu("Ayah \(a.surah):\(a.ayah)") {
-                        ayahMenuItems(surah: a.surah, ayah: a.ayah)
-                    }
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func ayahMenuItems(surah: Int, ayah: Int) -> some View {
-        let isBookmarked = BookmarkManager.shared.isAyahBookmarked(surah: surah, ayah: ayah)
-
-        Button {
-            onAyahAction?(.showTranslation(surah: surah, ayah: ayah))
-        } label: {
-            Label("Translation (\(surah):\(ayah))", systemImage: "character.book.closed")
-        }
-
-        Button {
-            onAyahAction?(.showTafsir(surah: surah, ayah: ayah))
-        } label: {
-            Label("Tafsir (\(surah):\(ayah))", systemImage: "book.pages")
-        }
-
-        Button {
-            onAyahAction?(.showSurahInfo(surah: surah))
-        } label: {
-            Label("Surah Info", systemImage: "info.circle")
-        }
-
-        Divider()
-
-        Button {
-            onAyahAction?(.toggleBookmark(surah: surah, ayah: ayah, page: pageNumber))
-        } label: {
-            Label(
-                isBookmarked ? "Remove Bookmark" : "Bookmark Ayah",
-                systemImage: isBookmarked ? "bookmark.slash.fill" : "bookmark"
-            )
-        }
     }
 }
 
@@ -154,9 +111,7 @@ enum AyahAction {
     case toggleBookmark(surah: Int, ayah: Int, page: Int)
 }
 
-// MARK: - QPC Glyph Text Rendering (UIKit)
-
-// MARK: - QPC Ayah Text (UIKit, theme-aware)
+// MARK: - QPC Text Line (UILabel subclass with context menu)
 
 struct QPCTextLine: UIViewRepresentable {
     let words: [QuranWord]
@@ -166,20 +121,34 @@ struct QPCTextLine: UIViewRepresentable {
     var highlightedAyah: AyahHighlight? = nil
     var highlightColor: UIColor? = nil
     var isDarkMode: Bool = false
+    var allLines: [QuranLine] = []
+    var pageBackground: UIColor = .black
+    var onAyahAction: ((AyahAction) -> Void)? = nil
+    var theme: ReadingTheme = .light
 
-    func makeUIView(context: Context) -> UILabel {
-        let label = UILabel()
+    func makeUIView(context: Context) -> QPCLabel {
+        let label = QPCLabel()
         label.numberOfLines = 1
         label.adjustsFontSizeToFitWidth = true
         label.minimumScaleFactor = 0.5
         label.baselineAdjustment = .alignCenters
         label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         label.clipsToBounds = true
-        label.isUserInteractionEnabled = false
+        label.isUserInteractionEnabled = true
         return label
     }
 
-    func updateUIView(_ label: UILabel, context: Context) {
+    func updateUIView(_ label: QPCLabel, context: Context) {
+        label.words = words
+        label.pageNumber = pageNumber
+        label.fontSize = fontSize
+        label.isDarkMode = isDarkMode
+        label.allLines = allLines
+        label.pageBgColor = pageBackground
+        label.onAyahAction = onAyahAction
+        label.highlightColorForMenu = highlightColor
+        label.currentTheme = theme
+
         let font = QuranFontManager.shared.uiFont(forPage: pageNumber, size: fontSize, dark: isDarkMode)
 
         let paragraphStyle = NSMutableParagraphStyle()
@@ -193,19 +162,246 @@ struct QPCTextLine: UIViewRepresentable {
         ]
 
         let attributed = NSMutableAttributedString()
+        var ranges: [(range: NSRange, wordIndex: Int)] = []
+
         for (index, word) in words.enumerated() {
             var attrs = baseAttributes
             if let highlight = highlightedAyah, let color = highlightColor,
                word.surah == highlight.surah && word.ayah == highlight.ayah {
                 attrs[.backgroundColor] = color
             }
+
+            let startIndex = attributed.length
             attributed.append(NSAttributedString(string: word.text, attributes: attrs))
-            // Add a thin space between words so justified alignment can distribute spacing
+            let endIndex = attributed.length
+            ranges.append((range: NSRange(location: startIndex, length: endIndex - startIndex), wordIndex: index))
+
             if index < words.count - 1 {
-                attributed.append(NSAttributedString(string: " ", attributes: baseAttributes))
+                // Highlight the space if the current word or next word belongs to the highlighted ayah
+                var spaceAttrs = baseAttributes
+                if let highlight = highlightedAyah, let color = highlightColor {
+                    let nextWord = words[index + 1]
+                    if (word.surah == highlight.surah && word.ayah == highlight.ayah) ||
+                       (nextWord.surah == highlight.surah && nextWord.ayah == highlight.ayah) {
+                        spaceAttrs[.backgroundColor] = color
+                    }
+                }
+                attributed.append(NSAttributedString(string: " ", attributes: spaceAttrs))
             }
         }
 
         label.attributedText = attributed
+        label.wordRanges = ranges
+    }
+}
+
+// MARK: - UILabel subclass with context menu interaction
+
+class QPCLabel: UILabel, UIContextMenuInteractionDelegate {
+
+    var words: [QuranWord] = []
+    var pageNumber: Int = 1
+    var fontSize: CGFloat = 20
+    var isDarkMode: Bool = false
+    var allLines: [QuranLine] = []
+    var pageBgColor: UIColor = .black
+    var onAyahAction: ((AyahAction) -> Void)? = nil
+    var highlightColorForMenu: UIColor? = nil
+    var currentTheme: ReadingTheme = .light
+    var wordRanges: [(range: NSRange, wordIndex: Int)] = []
+
+    private var menuInteraction: UIContextMenuInteraction?
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        backgroundColor = .clear
+        setupContextMenu()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        backgroundColor = .clear
+        setupContextMenu()
+    }
+
+    private func setupContextMenu() {
+        let interaction = UIContextMenuInteraction(delegate: self)
+        addInteraction(interaction)
+        menuInteraction = interaction
+    }
+
+    // MARK: - Hit testing: map point to ayah
+
+    private func ayahAtPoint(_ point: CGPoint) -> (surah: Int, ayah: Int)? {
+        guard let attributedText = attributedText, !words.isEmpty else { return nil }
+
+        // Create CTLine from the attributed text
+        let ctLine = CTLineCreateWithAttributedString(attributedText)
+
+        // The label may scale text to fit — compute the scale factor
+        let fullSize = CTLineGetBoundsWithOptions(ctLine, []).size
+        let scale = fullSize.width > 0 ? bounds.width / fullSize.width : 1.0
+        let actualScale = min(scale, 1.0) // adjustsFontSizeToFitWidth only shrinks
+
+        // Convert tap point to text coordinate space
+        // For RTL justified text, the text fills the full width
+        // CTLine uses a coordinate system where x=0 is the text start (right side for RTL)
+        // But CTLineGetStringIndexForPosition expects x in the line's coordinate space
+        let textPoint = CGPoint(x: point.x / actualScale, y: point.y)
+
+        let charIndex = CTLineGetStringIndexForPosition(ctLine, textPoint)
+
+        // Find which word this character belongs to
+        if charIndex != kCFNotFound {
+            for entry in wordRanges {
+                if charIndex >= entry.range.location && charIndex < entry.range.location + entry.range.length {
+                    let word = words[entry.wordIndex]
+                    return (surah: word.surah, ayah: word.ayah)
+                }
+                // Also check the space after this word (attribute it to this word)
+                let spaceAfter = entry.range.location + entry.range.length
+                if charIndex == spaceAfter && entry.wordIndex < words.count - 1 {
+                    let word = words[entry.wordIndex]
+                    return (surah: word.surah, ayah: word.ayah)
+                }
+            }
+        }
+
+        // Fallback: divide label width proportionally among words
+        // Each QPC glyph has roughly similar advance width
+        let tapX = point.x
+        let wordCount = words.count
+        guard wordCount > 0 else { return nil }
+
+        // For RTL: right side = first word, left side = last word
+        let segmentWidth = bounds.width / CGFloat(wordCount)
+        let index = Int((bounds.width - tapX) / segmentWidth)
+        let clampedIndex = max(0, min(wordCount - 1, index))
+        let word = words[clampedIndex]
+        return (surah: word.surah, ayah: word.ayah)
+    }
+
+    // MARK: - Lines containing ayah
+
+    private func linesContainingAyah(surah: Int, ayah: Int) -> [QuranLine] {
+        allLines.filter { line in
+            line.lineType == .ayah &&
+            line.words.contains { $0.surah == surah && $0.ayah == ayah }
+        }
+    }
+
+    // MARK: - Build preview for ayah using same SwiftUI views
+
+    private func makePreviewVC(surah: Int, ayah: Int) -> UIViewController {
+        let ayahLines = linesContainingAyah(surah: surah, ayah: ayah)
+        let lineHeight = fontSize / 0.55
+        let highlight = AyahHighlight(surah: surah, ayah: ayah)
+        let width = bounds.width
+        let dark = isDarkMode
+        let page = pageNumber
+        let fs = fontSize
+        let hlColor = highlightColorForMenu
+        let bgColor = pageBgColor
+        let theme = currentTheme
+
+        let previewContent = VStack(spacing: 0) {
+            ForEach(ayahLines) { line in
+                QPCTextLine(
+                    words: line.words,
+                    pageNumber: page,
+                    fontSize: fs,
+                    isCentered: line.isCentered,
+                    highlightedAyah: highlight,
+                    highlightColor: hlColor,
+                    isDarkMode: dark
+                )
+                .frame(width: width, height: lineHeight)
+            }
+        }
+        .background(Color(bgColor))
+        .environment(\.readingTheme, theme)
+
+        let vc = UIHostingController(rootView: previewContent)
+        vc.view.backgroundColor = bgColor
+        let totalHeight = CGFloat(ayahLines.count) * lineHeight
+        vc.preferredContentSize = CGSize(width: width, height: totalHeight)
+        return vc
+    }
+
+    // MARK: - UIContextMenuInteractionDelegate
+
+    func contextMenuInteraction(
+        _ interaction: UIContextMenuInteraction,
+        configurationForMenuAtLocation location: CGPoint
+    ) -> UIContextMenuConfiguration? {
+        guard let ayah = ayahAtPoint(location) else { return nil }
+
+        let surah = ayah.surah
+        let ayahNum = ayah.ayah
+        let pageNum = pageNumber
+
+        return UIContextMenuConfiguration(
+            identifier: nil,
+            previewProvider: { [weak self] in
+                guard let self = self else { return nil }
+                return self.makePreviewVC(surah: surah, ayah: ayahNum)
+            },
+            actionProvider: { [weak self] _ in
+                guard let self = self else { return nil }
+
+                let isBookmarked = BookmarkManager.shared.isAyahBookmarked(surah: surah, ayah: ayahNum)
+
+                let translation = UIAction(
+                    title: "Translation (\(surah):\(ayahNum))",
+                    image: UIImage(systemName: "character.book.closed")
+                ) { _ in
+                    self.onAyahAction?(.showTranslation(surah: surah, ayah: ayahNum))
+                }
+
+                let tafsir = UIAction(
+                    title: "Tafsir (\(surah):\(ayahNum))",
+                    image: UIImage(systemName: "book.pages")
+                ) { _ in
+                    self.onAyahAction?(.showTafsir(surah: surah, ayah: ayahNum))
+                }
+
+                let surahInfo = UIAction(
+                    title: "Surah Info",
+                    image: UIImage(systemName: "info.circle")
+                ) { _ in
+                    self.onAyahAction?(.showSurahInfo(surah: surah))
+                }
+
+                let bookmark = UIAction(
+                    title: isBookmarked ? "Remove Bookmark" : "Bookmark Ayah",
+                    image: UIImage(systemName: isBookmarked ? "bookmark.slash.fill" : "bookmark")
+                ) { _ in
+                    self.onAyahAction?(.toggleBookmark(surah: surah, ayah: ayahNum, page: pageNum))
+                }
+
+                let infoMenu = UIMenu(title: "", options: .displayInline, children: [translation, tafsir, surahInfo])
+                let bookmarkMenu = UIMenu(title: "", options: .displayInline, children: [bookmark])
+
+                return UIMenu(title: "", children: [infoMenu, bookmarkMenu])
+            }
+        )
+    }
+
+    func contextMenuInteraction(
+        _ interaction: UIContextMenuInteraction,
+        previewForHighlightingMenuWithConfiguration configuration: UIContextMenuConfiguration
+    ) -> UITargetedPreview? {
+        let params = UIPreviewParameters()
+        params.backgroundColor = .clear
+        return UITargetedPreview(view: self, parameters: params)
+    }
+
+    func contextMenuInteraction(
+        _ interaction: UIContextMenuInteraction,
+        previewForDismissingMenuWithConfiguration configuration: UIContextMenuConfiguration
+    ) -> UITargetedPreview? {
+        let params = UIPreviewParameters()
+        params.backgroundColor = .clear
+        return UITargetedPreview(view: self, parameters: params)
     }
 }

@@ -26,7 +26,8 @@ struct MushafPageView: View {
                         fontSize: fontSize,
                         pageNumber: page.id,
                         highlightedAyah: highlightedAyah,
-                        onAyahAction: onAyahAction
+                        onAyahAction: onAyahAction,
+                        allLines: page.lines
                     )
                     .frame(height: lineHeight)
                 }
