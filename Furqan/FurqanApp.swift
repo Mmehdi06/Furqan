@@ -33,6 +33,7 @@ struct FurqanApp: App {
                 _ = QuranSearchService.shared
                 _ = BookmarkManager.shared
                 TafsirService.shared.warmUp()
+                QuranFontManager.shared.preGenerateDarkFonts()
                 isLoading = false
 
                 try? await timer

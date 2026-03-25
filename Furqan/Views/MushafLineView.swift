@@ -92,7 +92,7 @@ struct MushafLineView: View {
             isCentered: line.isCentered,
             highlightedAyah: lineIsHighlighted() ? highlightedAyah : nil,
             highlightColor: theme.uiHighlightColor,
-            selectiveInvert: theme.needsSelectiveInvert
+            isDarkMode: theme.needsSelectiveInvert
         )
         .contentShape(Rectangle())
         .contextMenu {
@@ -156,6 +156,8 @@ enum AyahAction {
 
 // MARK: - QPC Glyph Text Rendering (UIKit)
 
+// MARK: - QPC Ayah Text (UIKit, theme-aware)
+
 struct QPCTextLine: UIViewRepresentable {
     let words: [QuranWord]
     let pageNumber: Int
@@ -163,14 +165,22 @@ struct QPCTextLine: UIViewRepresentable {
     let isCentered: Bool
     var highlightedAyah: AyahHighlight? = nil
     var highlightColor: UIColor? = nil
-    var selectiveInvert: Bool = false
+    var isDarkMode: Bool = false
 
-    func makeUIView(context: Context) -> QPCGlyphView {
-        QPCGlyphView()
+    func makeUIView(context: Context) -> UILabel {
+        let label = UILabel()
+        label.numberOfLines = 1
+        label.adjustsFontSizeToFitWidth = true
+        label.minimumScaleFactor = 0.5
+        label.baselineAdjustment = .alignCenters
+        label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        label.clipsToBounds = true
+        label.isUserInteractionEnabled = false
+        return label
     }
 
-    func updateUIView(_ view: QPCGlyphView, context: Context) {
-        let font = QuranFontManager.shared.uiFont(forPage: pageNumber, size: fontSize)
+    func updateUIView(_ label: UILabel, context: Context) {
+        let font = QuranFontManager.shared.uiFont(forPage: pageNumber, size: fontSize, dark: isDarkMode)
 
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.alignment = isCentered ? .center : .justified
@@ -192,139 +202,6 @@ struct QPCTextLine: UIViewRepresentable {
             attributed.append(NSAttributedString(string: word.text, attributes: attrs))
         }
 
-        view.update(attributedText: attributed, selectiveInvert: selectiveInvert)
-    }
-}
-
-// MARK: - Custom UIView for selective color font inversion
-
-/// Renders QPC color font glyphs and selectively inverts only black/gray pixels
-/// while preserving tajweed color markers (red, blue, green, etc.)
-final class QPCGlyphView: UIView {
-    private let label = UILabel()
-    private let imageView = UIImageView()
-    private var needsSelectiveInvert = false
-    private var currentText: NSAttributedString?
-
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        label.numberOfLines = 1
-        label.adjustsFontSizeToFitWidth = true
-        label.minimumScaleFactor = 0.5
-        label.baselineAdjustment = .alignCenters
-        label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        label.clipsToBounds = true
-        label.isUserInteractionEnabled = false
-        isUserInteractionEnabled = false
-
-        label.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        imageView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        imageView.contentMode = .scaleToFill
-        imageView.isHidden = true
-
-        addSubview(label)
-        addSubview(imageView)
-
-        setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        setContentHuggingPriority(.defaultLow, for: .horizontal)
-        setContentHuggingPriority(.defaultLow, for: .vertical)
-    }
-
-    required init?(coder: NSCoder) { fatalError() }
-
-    override var intrinsicContentSize: CGSize {
-        label.intrinsicContentSize
-    }
-
-    override func sizeThatFits(_ size: CGSize) -> CGSize {
-        label.sizeThatFits(size)
-    }
-
-    func update(attributedText: NSAttributedString, selectiveInvert: Bool) {
-        let textChanged = currentText != attributedText
-        let invertChanged = needsSelectiveInvert != selectiveInvert
-        guard textChanged || invertChanged else { return }
-
-        currentText = attributedText
-        needsSelectiveInvert = selectiveInvert
-        label.attributedText = attributedText
-        setNeedsLayout()
-    }
-
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        label.frame = bounds
-        imageView.frame = bounds
-
-        if needsSelectiveInvert {
-            label.isHidden = false
-            label.layoutIfNeeded()
-
-            guard bounds.width > 0, bounds.height > 0 else { return }
-
-            let renderer = UIGraphicsImageRenderer(bounds: bounds)
-            let image = renderer.image { ctx in
-                label.layer.render(in: ctx.cgContext)
-            }
-
-            label.isHidden = true
-            imageView.isHidden = false
-
-            if let cgImage = image.cgImage,
-               let processed = Self.invertBlackPixels(in: cgImage) {
-                imageView.image = UIImage(cgImage: processed, scale: image.scale, orientation: .up)
-            }
-        } else {
-            label.isHidden = false
-            imageView.isHidden = true
-        }
-    }
-
-    /// Inverts only low-saturation (black/gray) pixels to white,
-    /// preserving high-saturation tajweed color pixels.
-    private static func invertBlackPixels(in cgImage: CGImage) -> CGImage? {
-        let width = cgImage.width
-        let height = cgImage.height
-        let bytesPerPixel = 4
-        let bytesPerRow = width * bytesPerPixel
-
-        guard let context = CGContext(
-            data: nil,
-            width: width,
-            height: height,
-            bitsPerComponent: 8,
-            bytesPerRow: bytesPerRow,
-            space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-        ) else { return nil }
-
-        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
-        guard let data = context.data else { return nil }
-
-        let pixels = data.bindMemory(to: UInt8.self, capacity: width * height * bytesPerPixel)
-        let count = width * height * bytesPerPixel
-
-        for i in stride(from: 0, to: count, by: bytesPerPixel) {
-            let a = pixels[i + 3]
-            guard a > 10 else { continue }
-
-            let r = Int(pixels[i])
-            let g = Int(pixels[i + 1])
-            let b = Int(pixels[i + 2])
-
-            let maxC = max(r, max(g, b))
-            let minC = min(r, min(g, b))
-
-            // Saturation check: low saturation = black/gray/white text
-            // High saturation = tajweed colored marks — leave unchanged
-            let saturation = maxC > 0 ? (maxC - minC) * 255 / maxC : 0
-            if saturation < 50 {
-                pixels[i]     = UInt8(255 - r)
-                pixels[i + 1] = UInt8(255 - g)
-                pixels[i + 2] = UInt8(255 - b)
-            }
-        }
-
-        return context.makeImage()
+        label.attributedText = attributed
     }
 }
