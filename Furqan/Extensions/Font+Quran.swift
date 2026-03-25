@@ -132,6 +132,14 @@ final class QuranFontManager {
         return UIFont(name: name, size: size) ?? UIFont.systemFont(ofSize: size)
     }
 
+    // MARK: - Pre-register all light mode page fonts (call during splash)
+
+    func preRegisterAllPageFonts() {
+        for page in 1...604 {
+            _ = fontName(forPage: page)
+        }
+    }
+
     // MARK: - Pre-generate all dark fonts (call during splash)
 
     // Bump this when CPAL logic changes to force regeneration

@@ -41,15 +41,41 @@ struct FurqanApp: App {
                 async let timer: () = Task.sleep(nanoseconds: 2_000_000_000)
 
                 dataService.loadAll()
-                _ = QuranSearchService.shared
                 _ = BookmarkManager.shared
                 TafsirService.shared.warmUp()
                 QuranFontManager.shared.preGenerateDarkFonts()
+                QuranFontManager.shared.preRegisterAllPageFonts()
+
+                // Warm up search (open DB + run a trivial query)
+                let searchService = QuranSearchService.shared
+                _ = searchService.search(query: " ", limit: 1)
+
+                // Pre-load keyboard in background
+                KeyboardWarmUp.prepare()
+
                 isLoading = false
 
                 try? await timer
                 minTimePassed = true
             }
+        }
+    }
+}
+
+// MARK: - Keyboard Pre-warm
+
+enum KeyboardWarmUp {
+    static func prepare() {
+        DispatchQueue.main.async {
+            let field = UITextField(frame: .zero)
+            guard let window = UIApplication.shared.connectedScenes
+                .compactMap({ $0 as? UIWindowScene })
+                .first?.windows.first
+            else { return }
+            window.addSubview(field)
+            field.becomeFirstResponder()
+            field.resignFirstResponder()
+            field.removeFromSuperview()
         }
     }
 }
