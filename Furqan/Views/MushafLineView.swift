@@ -185,7 +185,7 @@ struct QPCTextLine: UIViewRepresentable {
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.alignment = isCentered ? .center : .justified
         paragraphStyle.baseWritingDirection = .rightToLeft
-        paragraphStyle.lineBreakMode = .byClipping
+        paragraphStyle.lineBreakMode = .byTruncatingTail
 
         let baseAttributes: [NSAttributedString.Key: Any] = [
             .font: font,
@@ -193,13 +193,17 @@ struct QPCTextLine: UIViewRepresentable {
         ]
 
         let attributed = NSMutableAttributedString()
-        for word in words {
+        for (index, word) in words.enumerated() {
             var attrs = baseAttributes
             if let highlight = highlightedAyah, let color = highlightColor,
                word.surah == highlight.surah && word.ayah == highlight.ayah {
                 attrs[.backgroundColor] = color
             }
             attributed.append(NSAttributedString(string: word.text, attributes: attrs))
+            // Add a thin space between words so justified alignment can distribute spacing
+            if index < words.count - 1 {
+                attributed.append(NSAttributedString(string: " ", attributes: baseAttributes))
+            }
         }
 
         label.attributedText = attributed
