@@ -22,6 +22,7 @@ struct SearchView: View {
                         .foregroundStyle(.secondary)
 
                     TextField("ابحث في القرآن...", text: $searchText)
+                        .accessibilityIdentifier("searchField")
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .focused($isFieldFocused)
@@ -41,8 +42,11 @@ struct SearchView: View {
                     }
                 }
                 .padding(12)
-                .background(Color(.systemGray6))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .adaptiveGlass(
+                    in: RoundedRectangle(cornerRadius: 16, style: .continuous),
+                    tint: .white.opacity(0.05),
+                    fallbackFill: AnyShapeStyle(Color(.systemGray6))
+                )
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
 
@@ -147,8 +151,10 @@ struct SearchView: View {
                     }
                 }
                 .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20))
+                .listRowBackground(Color.clear)
             }
             .listStyle(.plain)
+            .scrollContentBackground(.hidden)
         }
     }
 
@@ -178,8 +184,11 @@ struct SearchView: View {
                 resultRow(result)
             }
             .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+            .listRowBackground(Color.clear)
         }
         .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .accessibilityIdentifier("searchResultsList")
     }
 
     private func resultRow(_ result: SearchResult) -> some View {

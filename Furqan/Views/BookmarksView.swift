@@ -5,6 +5,10 @@ struct BookmarksView: View {
     let onSelect: (Int, Int, Int) -> Void  // (page, surah, ayah) — surah/ayah = 0 for page bookmarks
     @Environment(\.dismiss) private var dismiss
 
+    private var accentTint: Color {
+        pageBookmarks.isEmpty ? .orange.opacity(0.18) : .blue.opacity(0.16)
+    }
+
     private var pageBookmarks: [Bookmark] {
         bookmarkManager.bookmarks.filter { !$0.isAyahBookmark }
     }
@@ -22,6 +26,14 @@ struct BookmarksView: View {
                         systemImage: "bookmark",
                         description: Text("Long press on any ayah to add a bookmark")
                     )
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(24)
+                    .adaptiveGlass(
+                        in: RoundedRectangle(cornerRadius: 28, style: .continuous),
+                        tint: accentTint,
+                        fallbackFill: AnyShapeStyle(.thinMaterial)
+                    )
+                    .padding(20)
                 } else {
                     List {
                         if !ayahBookmarks.isEmpty {
@@ -63,6 +75,8 @@ struct BookmarksView: View {
                         }
                     }
                     .listStyle(.insetGrouped)
+                    .scrollContentBackground(.hidden)
+                    .accessibilityIdentifier("bookmarksList")
                 }
             }
             .navigationTitle("Bookmarks")

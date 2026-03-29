@@ -161,6 +161,10 @@ struct QPCTextLine: UIViewRepresentable {
             .paragraphStyle: paragraphStyle
         ]
 
+        // Use a system font for space characters to get consistent spacing
+        // QPC page fonts have wildly different space glyph widths
+        let spaceFont = UIFont.systemFont(ofSize: fontSize * 0.3)
+
         let attributed = NSMutableAttributedString()
         var ranges: [(range: NSRange, wordIndex: Int)] = []
 
@@ -177,8 +181,9 @@ struct QPCTextLine: UIViewRepresentable {
             ranges.append((range: NSRange(location: startIndex, length: endIndex - startIndex), wordIndex: index))
 
             if index < words.count - 1 {
-                // Highlight the space if the current word or next word belongs to the highlighted ayah
+                // Use system font space for consistent width across all page fonts
                 var spaceAttrs = baseAttributes
+                spaceAttrs[.font] = spaceFont
                 if let highlight = highlightedAyah, let color = highlightColor {
                     let nextWord = words[index + 1]
                     if (word.surah == highlight.surah && word.ayah == highlight.ayah) ||

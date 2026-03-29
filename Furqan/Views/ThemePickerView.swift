@@ -12,10 +12,18 @@ struct ThemePickerView: View {
                     .padding(.top, 16)
 
                 // Theme options
-                HStack(spacing: 16) {
-                    ForEach(ReadingTheme.allCases) { theme in
-                        themeButton(theme)
+                AdaptiveGlassCard(
+                    tint: themeManager.current == .sepia ? Color.brown.opacity(0.18) : nil,
+                    cornerRadius: 28,
+                    fallbackFill: AnyShapeStyle(.thinMaterial)
+                ) {
+                    HStack(spacing: 16) {
+                        ForEach(ReadingTheme.allCases) { theme in
+                            themeButton(theme)
+                        }
                     }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 18)
                 }
                 .padding(.horizontal, 24)
 
@@ -30,6 +38,7 @@ struct ThemePickerView: View {
                 }
             }
         }
+        .accessibilityIdentifier("themePickerView")
     }
 
     // MARK: - Preview
@@ -51,10 +60,10 @@ struct ThemePickerView: View {
         }
         .padding(24)
         .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(theme.pageBackground)
-                .shadow(color: .black.opacity(0.1), radius: 8, y: 2)
+        .adaptiveGlass(
+            in: RoundedRectangle(cornerRadius: 24, style: .continuous),
+            tint: previewTint(for: theme),
+            fallbackFill: AnyShapeStyle(theme.pageBackground.opacity(theme == .light ? 0.88 : 0.94))
         )
         .padding(.horizontal, 24)
     }
@@ -82,7 +91,11 @@ struct ThemePickerView: View {
                             .font(.system(size: 18))
                             .foregroundStyle(theme.textColor)
                     )
-                    .shadow(color: .black.opacity(0.08), radius: 4, y: 2)
+                    .adaptiveGlass(
+                        in: Circle(),
+                        tint: isSelected ? previewTint(for: theme) : nil,
+                        fallbackFill: AnyShapeStyle(theme.pageBackground.opacity(0.92))
+                    )
 
                 Text(theme.displayName)
                     .font(.caption2.weight(.medium))
@@ -90,5 +103,18 @@ struct ThemePickerView: View {
             }
         }
         .frame(maxWidth: .infinity)
+    }
+
+    private func previewTint(for theme: ReadingTheme) -> Color? {
+        switch theme {
+        case .light:
+            return .white.opacity(0.08)
+        case .dark:
+            return .gray.opacity(0.12)
+        case .sepia:
+            return .brown.opacity(0.18)
+        case .amoled:
+            return .white.opacity(0.06)
+        }
     }
 }

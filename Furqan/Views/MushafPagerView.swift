@@ -28,6 +28,7 @@ struct MushafPagerView: View {
     @Environment(\.readingTheme) private var theme
 
     private let lastPageKey = "quran_last_page"
+    private let toolbarCenterReserve: CGFloat = 140
 
     private var currentSurahName: String {
         surahs.last(where: { $0.startPage <= currentPage })?.nameSimple ?? ""
@@ -57,6 +58,7 @@ struct MushafPagerView: View {
                     .tag(page.id)
                 }
             }
+            .accessibilityIdentifier("mushafPager")
             .tabViewStyle(.page(indexDisplayMode: .never))
             .environment(\.layoutDirection, .rightToLeft)
             .ignoresSafeArea(edges: .bottom)
@@ -68,57 +70,7 @@ struct MushafPagerView: View {
             VStack {
                 Spacer()
 
-                ZStack {
-                    // Centered page number + surah name
-                    HStack(spacing: 6) {
-                        Text(currentSurahName)
-                            .font(.caption2)
-                            .foregroundStyle(theme.tertiaryTextColor)
-                        Text("\(currentPage)")
-                            .font(.caption)
-                            .foregroundStyle(theme.secondaryTextColor)
-                    }
-                    .padding(.vertical, 4)
-                    .padding(.horizontal, 12)
-                    .background(.ultraThinMaterial, in: Capsule())
-
-                    // Left and right buttons
-                    HStack {
-                        Button { showSurahIndex = true } label: {
-                            Image(systemName: "list.bullet")
-                                .font(.body)
-                                .foregroundStyle(theme.secondaryTextColor)
-                                .padding(8)
-                                .background(.ultraThinMaterial, in: Circle())
-                        }
-
-                        Button { showSearch = true } label: {
-                            Image(systemName: "magnifyingglass")
-                                .font(.body)
-                                .foregroundStyle(theme.secondaryTextColor)
-                                .padding(8)
-                                .background(.ultraThinMaterial, in: Circle())
-                        }
-
-                        Button { showThemePicker = true } label: {
-                            Image(systemName: themeManager.current.icon)
-                                .font(.body)
-                                .foregroundStyle(theme.secondaryTextColor)
-                                .padding(8)
-                                .background(.ultraThinMaterial, in: Circle())
-                        }
-
-                        Spacer()
-
-                        Button { showBookmarks = true } label: {
-                            Image(systemName: bookmarkManager.isBookmarked(page: currentPage) ? "bookmark.fill" : "bookmark")
-                                .font(.body)
-                                .foregroundStyle(bookmarkManager.isBookmarked(page: currentPage) ? .orange : theme.secondaryTextColor)
-                                .padding(8)
-                                .background(.ultraThinMaterial, in: Circle())
-                        }
-                    }
-                }
+                bottomToolbar
                 .padding(.horizontal, 20)
                 .padding(.bottom, 8)
             }
@@ -131,7 +83,11 @@ struct MushafPagerView: View {
                         .foregroundStyle(.white)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
-                        .background(.black.opacity(0.75), in: Capsule())
+                        .adaptiveGlass(
+                            in: Capsule(),
+                            tint: .black.opacity(theme == .amoled ? 0.35 : 0.2),
+                            fallbackFill: AnyShapeStyle(.regularMaterial)
+                        )
                         .transition(.move(edge: .top).combined(with: .opacity))
                     Spacer()
                 }
@@ -218,6 +174,82 @@ struct MushafPagerView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
             highlightedAyah = nil
         }
+    }
+
+    private var bottomToolbar: some View {
+        HStack {
+            HStack(spacing: 10) {
+                toolbarButton(
+                    systemName: "list.bullet",
+                    accessibilityIdentifier: "surahIndexButton"
+                ) {
+                    showSurahIndex = true
+                }
+
+                toolbarButton(
+                    systemName: "magnifyingglass",
+                    accessibilityIdentifier: "searchButton"
+                ) {
+                    showSearch = true
+                }
+            }
+
+            Spacer(minLength: 0)
+
+            toolbarButton(
+                systemName: themeManager.current.icon,
+                accessibilityIdentifier: "themeButton"
+            ) {
+                showThemePicker = true
+            }
+
+            toolbarButton(
+                systemName: bookmarkManager.isBookmarked(page: currentPage) ? "bookmark.fill" : "bookmark",
+                tint: bookmarkManager.isBookmarked(page: currentPage) ? .orange : nil,
+                accessibilityIdentifier: "bookmarkButton"
+            ) {
+                showBookmarks = true
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .overlay {
+            pageInfoChip
+        }
+    }
+
+    private var pageInfoChip: some View {
+        HStack(spacing: 6) {
+            Text(currentSurahName)
+                .font(.caption2)
+                .foregroundStyle(theme.tertiaryTextColor)
+            Text("\(currentPage)")
+                .font(.caption)
+                .foregroundStyle(theme.secondaryTextColor)
+        }
+        .padding(.vertical, 6)
+        .padding(.horizontal, 14)
+        .adaptiveGlass(
+            in: Capsule(),
+            tint: theme == .sepia ? Color.brown.opacity(0.15) : nil
+        )
+        .allowsHitTesting(false)
+        .accessibilityIdentifier("pageInfo")
+    }
+
+    private func toolbarButton(
+        systemName: String,
+        tint: Color? = nil,
+        accessibilityIdentifier: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.body)
+                .foregroundStyle(tint ?? theme.secondaryTextColor)
+        }
+        .buttonStyle(AdaptiveGlassCircleButtonStyle(tint: tint))
+        .contentShape(Circle())
+        .accessibilityIdentifier(accessibilityIdentifier)
     }
 }
 
