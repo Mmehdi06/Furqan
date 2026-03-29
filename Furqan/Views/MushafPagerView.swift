@@ -221,10 +221,10 @@ struct MushafPagerView: View {
         HStack(spacing: 6) {
             Text(currentSurahName)
                 .font(.caption2)
-                .foregroundStyle(theme.tertiaryTextColor)
+                .foregroundStyle(theme.secondaryTextColor)
             Text("\(currentPage)")
                 .font(.caption)
-                .foregroundStyle(theme.secondaryTextColor)
+                .foregroundStyle(theme.textColor)
         }
         .padding(.vertical, 6)
         .padding(.horizontal, 14)

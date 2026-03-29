@@ -45,6 +45,7 @@ struct BookmarksView: View {
                                     } label: {
                                         ayahBookmarkRow(bookmark)
                                     }
+                                    .buttonStyle(.plain)
                                 }
                                 .onDelete { offsets in
                                     for index in offsets {
@@ -64,6 +65,7 @@ struct BookmarksView: View {
                                     } label: {
                                         pageBookmarkRow(bookmark)
                                     }
+                                    .buttonStyle(.plain)
                                 }
                                 .onDelete { offsets in
                                     for index in offsets {

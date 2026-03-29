@@ -51,18 +51,18 @@ enum ReadingTheme: String, CaseIterable, Identifiable, Codable {
     var secondaryTextColor: Color {
         switch self {
         case .light:  return Color(.secondaryLabel)
-        case .dark:   return Color(white: 0.60)
-        case .sepia:  return Color(red: 0.50, green: 0.42, blue: 0.33)
-        case .amoled: return Color(white: 0.55)
+        case .dark:   return Color(white: 0.70)
+        case .sepia:  return Color(red: 0.42, green: 0.34, blue: 0.26)
+        case .amoled: return Color(white: 0.68)
         }
     }
 
     var tertiaryTextColor: Color {
         switch self {
         case .light:  return Color(.tertiaryLabel)
-        case .dark:   return Color(white: 0.40)
-        case .sepia:  return Color(red: 0.65, green: 0.58, blue: 0.50)
-        case .amoled: return Color(white: 0.35)
+        case .dark:   return Color(white: 0.56)
+        case .sepia:  return Color(red: 0.52, green: 0.44, blue: 0.35)
+        case .amoled: return Color(white: 0.52)
         }
     }
 

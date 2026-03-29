@@ -15,7 +15,8 @@ struct ThemePickerView: View {
                 AdaptiveGlassCard(
                     tint: themeManager.current == .sepia ? Color.brown.opacity(0.18) : nil,
                     cornerRadius: 28,
-                    fallbackFill: AnyShapeStyle(.thinMaterial)
+                    fallbackFill: AnyShapeStyle(.thinMaterial),
+                    fallbackStroke: pickerStrokeColor(for: themeManager.current)
                 ) {
                     HStack(spacing: 16) {
                         ForEach(ReadingTheme.allCases) { theme in
@@ -26,12 +27,14 @@ struct ThemePickerView: View {
                     .padding(.vertical, 18)
                 }
                 .padding(.horizontal, 24)
+                .id("theme-options-\(themeManager.current.rawValue)")
 
                 Spacer()
             }
             .background(themeManager.current.pageBackground.ignoresSafeArea())
             .navigationTitle("Reading Theme")
             .navigationBarTitleDisplayMode(.inline)
+            .preferredColorScheme(themeManager.current.colorScheme)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Close") { dismiss() }
@@ -63,9 +66,11 @@ struct ThemePickerView: View {
         .adaptiveGlass(
             in: RoundedRectangle(cornerRadius: 24, style: .continuous),
             tint: previewTint(for: theme),
-            fallbackFill: AnyShapeStyle(theme.pageBackground.opacity(theme == .light ? 0.88 : 0.94))
+            fallbackFill: AnyShapeStyle(theme.pageBackground.opacity(theme == .light ? 0.88 : 0.94)),
+            fallbackStroke: pickerStrokeColor(for: theme)
         )
         .padding(.horizontal, 24)
+        .id("theme-preview-\(theme.rawValue)")
     }
 
     // MARK: - Theme Button
@@ -94,12 +99,13 @@ struct ThemePickerView: View {
                     .adaptiveGlass(
                         in: Circle(),
                         tint: isSelected ? previewTint(for: theme) : nil,
-                        fallbackFill: AnyShapeStyle(theme.pageBackground.opacity(0.92))
+                        fallbackFill: AnyShapeStyle(theme.pageBackground.opacity(0.92)),
+                        fallbackStroke: pickerStrokeColor(for: theme)
                     )
 
                 Text(theme.displayName)
                     .font(.caption2.weight(.medium))
-                    .foregroundStyle(isSelected ? .primary : .secondary)
+                    .foregroundStyle(isSelected ? themeManager.current.textColor : themeManager.current.secondaryTextColor)
             }
         }
         .frame(maxWidth: .infinity)
@@ -115,6 +121,19 @@ struct ThemePickerView: View {
             return .brown.opacity(0.18)
         case .amoled:
             return .white.opacity(0.06)
+        }
+    }
+
+    private func pickerStrokeColor(for theme: ReadingTheme) -> Color {
+        switch theme {
+        case .light:
+            return .black.opacity(0.06)
+        case .dark:
+            return .white.opacity(0.06)
+        case .sepia:
+            return Color(red: 0.55, green: 0.46, blue: 0.35).opacity(0.18)
+        case .amoled:
+            return .white.opacity(0.04)
         }
     }
 }

@@ -62,17 +62,20 @@ struct AdaptiveGlassCard<Content: View>: View {
     let tint: Color?
     let cornerRadius: CGFloat
     let fallbackFill: AnyShapeStyle
+    let fallbackStroke: Color
     let content: Content
 
     init(
         tint: Color? = nil,
         cornerRadius: CGFloat = 20,
         fallbackFill: AnyShapeStyle = AnyShapeStyle(.ultraThinMaterial),
+        fallbackStroke: Color = Color.white.opacity(0.12),
         @ViewBuilder content: () -> Content
     ) {
         self.tint = tint
         self.cornerRadius = cornerRadius
         self.fallbackFill = fallbackFill
+        self.fallbackStroke = fallbackStroke
         self.content = content()
     }
 
@@ -81,7 +84,8 @@ struct AdaptiveGlassCard<Content: View>: View {
             .adaptiveGlass(
                 in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous),
                 tint: tint,
-                fallbackFill: fallbackFill
+                fallbackFill: fallbackFill,
+                fallbackStroke: fallbackStroke
             )
     }
 }
