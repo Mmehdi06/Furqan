@@ -199,8 +199,9 @@ struct QPCTextLine: UIViewRepresentable {
                 spaceAttrs[.font] = spaceFont
                 if let highlight = highlightedAyah, let color = highlightColor {
                     let nextWord = words[index + 1]
-                    if (word.surah == highlight.surah && word.ayah == highlight.ayah) ||
-                       (nextWord.surah == highlight.surah && nextWord.ayah == highlight.ayah) {
+                    // Highlight only the leading space before a highlighted word,
+                    // not the trailing space after the last highlighted word.
+                    if nextWord.surah == highlight.surah && nextWord.ayah == highlight.ayah {
                         spaceAttrs[.backgroundColor] = color
                     }
                 }
