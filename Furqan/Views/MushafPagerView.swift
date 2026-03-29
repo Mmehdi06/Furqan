@@ -28,7 +28,6 @@ struct MushafPagerView: View {
     @Environment(\.readingTheme) private var theme
 
     private let lastPageKey = "quran_last_page"
-    private let toolbarCenterReserve: CGFloat = 140
 
     private var currentSurahName: String {
         surahs.last(where: { $0.startPage <= currentPage })?.nameSimple ?? ""
@@ -115,14 +114,14 @@ struct MushafPagerView: View {
         }
         .sheet(isPresented: $showThemePicker) {
             ThemePickerView(themeManager: themeManager)
-                .presentationDetents([.medium])
+                .presentationDetents([.large])
         }
         .sheet(item: Binding(
             get: { tafsirTarget.map { TafsirTarget(surah: $0.surah, ayah: $0.ayah) } },
             set: { tafsirTarget = $0.map { ($0.surah, $0.ayah) } }
         )) { target in
             TafsirView(surah: target.surah, ayah: target.ayah)
-                .presentationDetents([.medium, .large])
+                .presentationDetents( [.large])
         }
         .sheet(item: Binding(
             get: { translationTarget.map { TranslationTarget(surah: $0.surah, ayah: $0.ayah) } },
@@ -178,7 +177,7 @@ struct MushafPagerView: View {
 
     private var bottomToolbar: some View {
         HStack {
-            HStack(spacing: 10) {
+            toolbarCluster {
                 toolbarButton(
                     systemName: "list.bullet",
                     accessibilityIdentifier: "surahIndexButton"
@@ -194,46 +193,94 @@ struct MushafPagerView: View {
                 }
             }
 
-            Spacer(minLength: 0)
+            Spacer(minLength: 12)
 
-            toolbarButton(
-                systemName: themeManager.current.icon,
-                accessibilityIdentifier: "themeButton"
-            ) {
-                showThemePicker = true
-            }
+            pageInfoChip
 
-            toolbarButton(
-                systemName: bookmarkManager.isBookmarked(page: currentPage) ? "bookmark.fill" : "bookmark",
-                tint: bookmarkManager.isBookmarked(page: currentPage) ? .orange : nil,
-                accessibilityIdentifier: "bookmarkButton"
-            ) {
-                showBookmarks = true
+            Spacer(minLength: 12)
+
+            toolbarCluster {
+                toolbarButton(
+                    systemName: themeManager.current.icon,
+                    accessibilityIdentifier: "themeButton"
+                ) {
+                    showThemePicker = true
+                }
+
+                toolbarButton(
+                    systemName: bookmarkManager.isBookmarked(page: currentPage) ? "bookmark.fill" : "bookmark",
+                    tint: bookmarkManager.isBookmarked(page: currentPage) ? .orange : nil,
+                    accessibilityIdentifier: "bookmarkButton"
+                ) {
+                    showBookmarks = true
+                }
             }
         }
         .frame(maxWidth: .infinity)
-        .overlay {
-            pageInfoChip
-        }
     }
 
     private var pageInfoChip: some View {
         HStack(spacing: 6) {
             Text(currentSurahName)
-                .font(.caption2)
+                .font(.caption.weight(.medium))
                 .foregroundStyle(theme.secondaryTextColor)
             Text("\(currentPage)")
-                .font(.caption)
+                .font(.caption.weight(.semibold))
+                .monospacedDigit()
                 .foregroundStyle(theme.textColor)
         }
-        .padding(.vertical, 6)
-        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .padding(.horizontal, 16)
         .adaptiveGlass(
             in: Capsule(),
-            tint: theme == .sepia ? Color.brown.opacity(0.15) : nil
+            tint: theme == .sepia ? Color.brown.opacity(0.15) : theme == .light ? Color.white.opacity(0.08) : nil,
+            fallbackFill: toolbarChipFill,
+            fallbackStroke: toolbarStroke
         )
         .allowsHitTesting(false)
         .accessibilityIdentifier("pageInfo")
+    }
+
+    @ViewBuilder
+    private func toolbarCluster<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        if #available(iOS 26.0, *) {
+            GlassEffectContainer(spacing: 12) {
+                HStack(spacing: 10) {
+                    content()
+                }
+                .padding(.horizontal, 6)
+            }
+        } else {
+            HStack(spacing: 10) {
+                content()
+            }
+        }
+    }
+
+    private var toolbarTint: Color? {
+        switch theme {
+        case .light:
+            return .white.opacity(0.08)
+        case .dark:
+            return .gray.opacity(0.12)
+        case .sepia:
+            return .brown.opacity(0.16)
+        case .amoled:
+            return .white.opacity(0.05)
+        }
+    }
+
+    private var toolbarStroke: Color {
+        switch theme {
+        case .light:
+            return .black.opacity(0.06)
+        case .dark:
+            return .white.opacity(0.07)
+        case .sepia:
+            return Color(red: 0.54, green: 0.44, blue: 0.33).opacity(0.16)
+        case .amoled:
+            return .white.opacity(0.05)
+        }
     }
 
     private func toolbarButton(
@@ -244,12 +291,36 @@ struct MushafPagerView: View {
     ) -> some View {
         Button(action: action) {
             Image(systemName: systemName)
-                .font(.body)
+                .font(.system(size: 17, weight: .semibold, design: .rounded))
                 .foregroundStyle(tint ?? theme.secondaryTextColor)
         }
-        .buttonStyle(AdaptiveGlassCircleButtonStyle(tint: tint))
+        .buttonStyle(
+            AdaptiveGlassCircleButtonStyle(
+                tint: tint ?? toolbarTint,
+                fallbackFill: toolbarButtonFill,
+                fallbackStroke: toolbarStroke
+            )
+        )
         .contentShape(Circle())
         .accessibilityIdentifier(accessibilityIdentifier)
+    }
+
+    private var toolbarChipFill: AnyShapeStyle {
+        switch theme {
+        case .amoled:
+            return AnyShapeStyle(Color.white.opacity(0.06))
+        default:
+            return AnyShapeStyle(.regularMaterial)
+        }
+    }
+
+    private var toolbarButtonFill: AnyShapeStyle {
+        switch theme {
+        case .amoled:
+            return AnyShapeStyle(Color.white.opacity(0.06))
+        default:
+            return AnyShapeStyle(.ultraThinMaterial)
+        }
     }
 }
 

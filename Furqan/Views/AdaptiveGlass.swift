@@ -16,9 +16,7 @@ private struct AdaptiveGlassMaterialModifier<S: Shape>: ViewModifier {
             content
                 .background(fallbackFill, in: shape)
                 .overlay {
-                    shape
-                        .
-                    stroke(fallbackStroke, lineWidth: 0.8)
+                    shape.stroke(fallbackStroke, lineWidth: 0.8)
                 }
         }
     }
@@ -93,21 +91,30 @@ struct AdaptiveGlassCard<Content: View>: View {
 
 struct AdaptiveGlassCircleButtonStyle: ButtonStyle {
     let tint: Color?
+    let fallbackFill: AnyShapeStyle
+    let fallbackStroke: Color
 
-    init(tint: Color? = nil) {
+    init(
+        tint: Color? = nil,
+        fallbackFill: AnyShapeStyle = AnyShapeStyle(.ultraThinMaterial),
+        fallbackStroke: Color = Color.white.opacity(0.12)
+    ) {
         self.tint = tint
+        self.fallbackFill = fallbackFill
+        self.fallbackStroke = fallbackStroke
     }
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.94 : 1)
             .animation(.spring(response: 0.25, dampingFraction: 0.8), value: configuration.isPressed)
-            .padding(10)
+            .padding(11)
             .adaptiveGlass(
                 in: Circle(),
                 tint: tint,
                 interactive: true,
-                fallbackFill: AnyShapeStyle(.ultraThinMaterial)
+                fallbackFill: fallbackFill,
+                fallbackStroke: fallbackStroke
             )
     }
 }
@@ -130,6 +137,37 @@ struct AdaptiveGlassProminentButtonStyle: ButtonStyle {
                 tint: tint,
                 interactive: true,
                 fallbackFill: AnyShapeStyle(.regularMaterial)
+            )
+    }
+}
+
+struct AdaptiveGlassToolbarGroup<Content: View>: View {
+    let tint: Color?
+    let fallbackFill: AnyShapeStyle
+    let fallbackStroke: Color
+    let content: Content
+
+    init(
+        tint: Color? = nil,
+        fallbackFill: AnyShapeStyle = AnyShapeStyle(.thinMaterial),
+        fallbackStroke: Color = Color.white.opacity(0.10),
+        @ViewBuilder content: () -> Content
+    ) {
+        self.tint = tint
+        self.fallbackFill = fallbackFill
+        self.fallbackStroke = fallbackStroke
+        self.content = content()
+    }
+
+    var body: some View {
+        content
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .adaptiveGlass(
+                in: Capsule(),
+                tint: tint,
+                fallbackFill: fallbackFill,
+                fallbackStroke: fallbackStroke
             )
     }
 }

@@ -3,6 +3,7 @@ import SwiftUI
 struct SearchView: View {
     let onSelect: (Int, Int, Int) -> Void  // (page, surah, ayah)
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.readingTheme) private var theme
 
     @State private var searchText = ""
     @State private var results: [SearchResult] = []
@@ -16,83 +17,14 @@ struct SearchView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Search field
-                HStack(spacing: 12) {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundStyle(.secondary)
+                searchHeader
 
-                    TextField("ابحث في القرآن...", text: $searchText)
-                        .accessibilityIdentifier("searchField")
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .focused($isFieldFocused)
-                        .environment(\.layoutDirection, .rightToLeft)
-                        .environment(\.locale, Locale(identifier: "ar"))
-                        .submitLabel(.search)
-
-                    if !searchText.isEmpty {
-                        Button {
-                            searchText = ""
-                            results = []
-                            hasSearched = false
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-                .padding(12)
-                .adaptiveGlass(
-                    in: RoundedRectangle(cornerRadius: 16, style: .continuous),
-                    tint: .white.opacity(0.05),
-                    fallbackFill: AnyShapeStyle(Color(.systemGray6))
-                )
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
-
-                // Content
-                if isSearching {
-                    Spacer()
-                    ProgressView("Searching...")
-                    Spacer()
-                } else if hasSearched && results.isEmpty {
-                    Spacer()
-                    VStack(spacing: 8) {
-                        Image(systemName: "text.magnifyingglass")
-                            .font(.system(size: 40))
-                            .foregroundStyle(.secondary)
-                        Text("No results found")
-                            .font(.headline)
-                            .foregroundStyle(.secondary)
-                        Text("Try a different search term")
-                            .font(.subheadline)
-                            .foregroundStyle(.tertiary)
-                    }
-                    Spacer()
-                } else if !results.isEmpty {
-                    resultCountHeader
-                    resultsList
-                } else if !searchHistory.isEmpty {
-                    // Show search history when no active search
-                    historyView
-                } else {
-                    Spacer()
-                    VStack(spacing: 8) {
-                        Image(systemName: "text.magnifyingglass")
-                            .font(.system(size: 40))
-                            .foregroundStyle(.secondary.opacity(0.5))
-                        Text("Search the Quran")
-                            .font(.headline)
-                            .foregroundStyle(.secondary)
-                        Text("Enter Arabic text to find verses")
-                            .font(.subheadline)
-                            .foregroundStyle(.tertiary)
-                    }
-                    Spacer()
-                }
+                contentView
             }
+            .background(theme.pageBackground.ignoresSafeArea())
             .navigationTitle("Search")
             .navigationBarTitleDisplayMode(.inline)
+            .preferredColorScheme(theme.colorScheme)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Close") { dismiss() }
@@ -109,52 +41,160 @@ struct SearchView: View {
 
     // MARK: - History View
 
+    private var searchHeader: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Find verses by Arabic text or jump directly with a surah and ayah reference.")
+                .font(.subheadline)
+                .foregroundStyle(theme.secondaryTextColor)
+
+            HStack(spacing: 12) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(theme.secondaryTextColor)
+
+                TextField("ابحث في القرآن...", text: $searchText)
+                    .accessibilityIdentifier("searchField")
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .focused($isFieldFocused)
+                    .environment(\.layoutDirection, .rightToLeft)
+                    .environment(\.locale, Locale(identifier: "ar"))
+                    .submitLabel(.search)
+
+                if !searchText.isEmpty {
+                    Button {
+                        searchText = ""
+                        results = []
+                        hasSearched = false
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(theme.secondaryTextColor)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 13)
+            .adaptiveGlass(
+                in: RoundedRectangle(cornerRadius: 18, style: .continuous),
+                tint: searchChromeTint,
+                fallbackFill: searchFieldFill,
+                fallbackStroke: cardStroke
+            )
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 12)
+        .padding(.bottom, 12)
+    }
+
+    @ViewBuilder
+    private var contentView: some View {
+        if isSearching {
+            stateCard(
+                icon: "magnifyingglass.circle",
+                title: "Searching...",
+                message: "Looking through the Quran for matches."
+            ) {
+                ProgressView()
+                    .tint(theme.textColor)
+            }
+        } else if hasSearched && results.isEmpty {
+            stateCard(
+                icon: "text.magnifyingglass",
+                title: "No results found",
+                message: "Try a different Arabic phrase or a surah:ayah reference."
+            )
+        } else if !results.isEmpty {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    resultCountHeader
+
+                    LazyVStack(spacing: 12) {
+                        ForEach(results) { result in
+                            Button {
+                                saveToHistory(searchText)
+                                dismiss()
+                                DispatchQueue.main.asyncAfter(deadline: .now()) {
+                                    onSelect(result.pageNumber, result.surah, result.ayah)
+                                }
+                            } label: {
+                                resultRow(result)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .accessibilityIdentifier("searchResultsList")
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 28)
+            }
+        } else if !searchHistory.isEmpty {
+            historyView
+        } else {
+            stateCard(
+                icon: "book.pages",
+                title: "Search the Quran",
+                message: "Enter Arabic text to find verses and jump straight into the reader."
+            )
+        }
+    }
+
     private var historyView: some View {
-        VStack(spacing: 0) {
+        ScrollView {
+            VStack(spacing: 12) {
             HStack {
                 Text("Recent searches")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.secondary)
+                        .font(.headline)
+                        .foregroundStyle(theme.textColor)
                 Spacer()
                 Button {
                     searchHistory = []
                     SearchHistoryManager.clear()
                 } label: {
                     Text("Clear")
-                        .font(.subheadline)
+                            .font(.subheadline.weight(.medium))
                         .foregroundStyle(.red)
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 16)
-            .padding(.bottom, 8)
+                .padding(.top, 4)
 
-            List(searchHistory, id: \.self) { query in
-                Button {
-                    searchText = query
-                } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: "clock.arrow.circlepath")
-                            .font(.system(size: 14))
-                            .foregroundStyle(.tertiary)
+                LazyVStack(spacing: 12) {
+                    ForEach(searchHistory, id: \.self) { query in
+                        Button {
+                            searchText = query
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: "clock.arrow.circlepath")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundStyle(theme.secondaryTextColor)
 
-                        Text(query)
-                            .font(.system(size: 17, design: .serif))
-                            .foregroundStyle(.primary)
-                            .environment(\.layoutDirection, .rightToLeft)
+                                Text(query)
+                                    .font(.system(size: 18, weight: .medium, design: .serif))
+                                    .foregroundStyle(theme.textColor)
+                                    .frame(maxWidth: .infinity, alignment: .trailing)
+                                    .environment(\.layoutDirection, .rightToLeft)
 
-                        Spacer()
-
-                        Image(systemName: "arrow.up.left")
-                            .font(.system(size: 12))
-                            .foregroundStyle(.tertiary)
+                                Image(systemName: "arrow.up.left")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(theme.tertiaryTextColor)
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 16)
+                            .adaptiveGlass(
+                                in: RoundedRectangle(cornerRadius: 22, style: .continuous),
+                                tint: searchChromeTint,
+                                fallbackFill: cardFill,
+                                fallbackStroke: cardStroke
+                            )
+                            .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
-                .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20))
-                .listRowBackground(Color.clear)
             }
-            .listStyle(.plain)
-            .scrollContentBackground(.hidden)
+            .padding(.horizontal, 20)
+            .padding(.bottom, 28)
         }
     }
 
@@ -163,60 +203,56 @@ struct SearchView: View {
     private var resultCountHeader: some View {
         HStack {
             Text("\(results.count) result\(results.count == 1 ? "" : "s")")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(theme.secondaryTextColor)
             Spacer()
+            Text("Tap a verse to open it")
+                .font(.caption)
+                .foregroundStyle(theme.tertiaryTextColor)
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 12)
-        .padding(.bottom, 4)
-    }
-
-    private var resultsList: some View {
-        List(results) { result in
-            Button {
-                saveToHistory(searchText)
-                dismiss()
-                DispatchQueue.main.asyncAfter(deadline: .now()) {
-                    onSelect(result.pageNumber, result.surah, result.ayah)
-                }
-            } label: {
-                resultRow(result)
-            }
-            .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
-            .listRowBackground(Color.clear)
-        }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
-        .accessibilityIdentifier("searchResultsList")
     }
 
     private func resultRow(_ result: SearchResult) -> some View {
-        VStack(alignment: .trailing, spacing: 8) {
-            HStack {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
                 Text("Page \(result.pageNumber)")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(theme.tertiaryTextColor)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(theme.textColor.opacity(theme == .light || theme == .sepia ? 0.06 : 0.12), in: Capsule())
 
                 Spacer()
 
-                Text("\(result.surahName)")
-                    .font(.system(size: 15, weight: .medium, design: .serif))
-                    .foregroundStyle(.primary)
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(result.surahName)
+                        .font(.system(size: 15, weight: .semibold, design: .serif))
+                        .foregroundStyle(theme.textColor)
 
-                Text("(\(result.surah):\(result.ayah))")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    Text("\(result.surah):\(result.ayah)")
+                        .font(.caption)
+                        .foregroundStyle(theme.secondaryTextColor)
+                }
             }
 
             Text(result.verseText)
-                .font(.system(size: 18, design: .serif))
-                .foregroundStyle(.primary)
+                .font(.system(size: 19, weight: .medium, design: .serif))
+                .foregroundStyle(theme.textColor)
                 .multilineTextAlignment(.trailing)
+                .lineSpacing(4)
                 .lineLimit(3)
                 .frame(maxWidth: .infinity, alignment: .trailing)
                 .environment(\.layoutDirection, .rightToLeft)
         }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .adaptiveGlass(
+            in: RoundedRectangle(cornerRadius: 22, style: .continuous),
+            tint: searchChromeTint,
+            fallbackFill: cardFill,
+            fallbackStroke: cardStroke
+        )
+        .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
     }
 
     // MARK: - Search
@@ -273,6 +309,93 @@ struct SearchView: View {
         }
 
         SearchHistoryManager.save(searchHistory)
+    }
+
+    @ViewBuilder
+    private func stateCard(
+        icon: String,
+        title: String,
+        message: String,
+        @ViewBuilder accessory: () -> some View = { EmptyView() }
+    ) -> some View {
+        Spacer()
+        VStack(spacing: 14) {
+            Image(systemName: icon)
+                .font(.system(size: 34, weight: .medium))
+                .foregroundStyle(theme.secondaryTextColor)
+
+            VStack(spacing: 6) {
+                Text(title)
+                    .font(.headline)
+                    .foregroundStyle(theme.textColor)
+                Text(message)
+                    .font(.subheadline)
+                    .foregroundStyle(theme.secondaryTextColor)
+                    .multilineTextAlignment(.center)
+            }
+
+            accessory()
+        }
+        .padding(28)
+        .frame(maxWidth: .infinity)
+        .adaptiveGlass(
+            in: RoundedRectangle(cornerRadius: 28, style: .continuous),
+            tint: searchChromeTint,
+            fallbackFill: cardFill,
+            fallbackStroke: cardStroke
+        )
+        .padding(.horizontal, 20)
+        Spacer()
+    }
+
+    private var searchChromeTint: Color? {
+        switch theme {
+        case .light:
+            return .white.opacity(0.10)
+        case .dark:
+            return .gray.opacity(0.12)
+        case .sepia:
+            return .brown.opacity(0.16)
+        case .amoled:
+            return .white.opacity(0.05)
+        }
+    }
+
+    private var cardFill: AnyShapeStyle {
+        switch theme {
+        case .amoled:
+            return AnyShapeStyle(Color.white.opacity(0.05))
+        case .sepia:
+            return AnyShapeStyle(theme.pageBackground.opacity(0.94))
+        default:
+            return AnyShapeStyle(.thinMaterial)
+        }
+    }
+
+    private var searchFieldFill: AnyShapeStyle {
+        switch theme {
+        case .light:
+            return AnyShapeStyle(Color(.systemGray6))
+        case .sepia:
+            return AnyShapeStyle(theme.pageBackground.opacity(0.92))
+        case .amoled:
+            return AnyShapeStyle(Color.white.opacity(0.05))
+        case .dark:
+            return AnyShapeStyle(.thinMaterial)
+        }
+    }
+
+    private var cardStroke: Color {
+        switch theme {
+        case .light:
+            return .black.opacity(0.06)
+        case .dark:
+            return .white.opacity(0.08)
+        case .sepia:
+            return Color(red: 0.55, green: 0.45, blue: 0.33).opacity(0.18)
+        case .amoled:
+            return .white.opacity(0.05)
+        }
     }
 }
 
