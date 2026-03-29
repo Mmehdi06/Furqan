@@ -2,11 +2,22 @@ import SwiftUI
 import CoreText
 import UIKit
 
-final class QuranFontManager {
+// Wrapper for CGFont to use with NSCache (requires reference types)
+private class CGFontWrapper {
+    let font: CGFont
+    init(_ font: CGFont) { self.font = font }
+}
+
+final class QuranFontManager: @unchecked Sendable {
     static let shared = QuranFontManager()
 
+    private let lock = NSLock()
     private var registeredPageFonts: [Int: String] = [:]
-    private var cachedDarkCGFonts: [Int: CGFont] = [:]
+    private let cachedDarkCGFonts: NSCache<NSNumber, CGFontWrapper> = {
+        let cache = NSCache<NSNumber, CGFontWrapper>()
+        cache.countLimit = 30 // Keep ~30 pages in memory, evict the rest
+        return cache
+    }()
     private var darkSurahHeaderCGFont: CGFont?
     private var staticFontsRegistered = false
     private var darkFontsReady = false
@@ -37,9 +48,12 @@ final class QuranFontManager {
     // MARK: - Per-Page QPC Fonts (light mode)
 
     func fontName(forPage page: Int) -> String {
+        lock.lock()
         if let cached = registeredPageFonts[page] {
+            lock.unlock()
             return cached
         }
+        lock.unlock()
 
         guard let url = Bundle.main.url(forResource: "p\(page)", withExtension: "ttf", subdirectory: nil) else {
             return "Helvetica"
@@ -52,7 +66,9 @@ final class QuranFontManager {
            let provider = CGDataProvider(data: data),
            let cgFont = CGFont(provider),
            let psName = cgFont.postScriptName as String? {
+            lock.lock()
             registeredPageFonts[page] = psName
+            lock.unlock()
             return psName
         }
 
@@ -62,8 +78,9 @@ final class QuranFontManager {
     // MARK: - Per-Page QPC Fonts (dark mode — CPAL modified, loaded via CGFont)
 
     private func darkCGFont(forPage page: Int) -> CGFont? {
-        if let cached = cachedDarkCGFonts[page] {
-            return cached
+        let key = NSNumber(value: page)
+        if let cached = cachedDarkCGFonts.object(forKey: key) {
+            return cached.font
         }
 
         let darkFontURL = darkFontDir.appendingPathComponent("p\(page)_dark.ttf")
@@ -85,7 +102,7 @@ final class QuranFontManager {
             return nil
         }
 
-        cachedDarkCGFonts[page] = cgFont
+        cachedDarkCGFonts.setObject(CGFontWrapper(cgFont), forKey: key)
         return cgFont
     }
 
@@ -187,7 +204,7 @@ final class QuranFontManager {
         // Mark as complete with version
         try? Data().write(to: markerFile)
         // Clear in-memory cache so new fonts are loaded
-        cachedDarkCGFonts.removeAll()
+        cachedDarkCGFonts.removeAllObjects()
         darkSurahHeaderCGFont = nil
         darkFontsReady = true
     }

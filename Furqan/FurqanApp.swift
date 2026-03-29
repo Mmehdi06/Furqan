@@ -30,12 +30,12 @@ struct FurqanApp: App {
                         .transition(.opacity)
                 }
             }
-            .animation(.easeOut(duration: 0.4), value: isLoading)
-            .animation(.easeOut(duration: 0.4), value: minTimePassed)
-            .animation(.easeOut(duration: 0.5), value: showOnboarding)
             .environment(\.readingTheme, themeManager.current)
             .environmentObject(themeManager)
             .preferredColorScheme(themeManager.current.colorScheme)
+            .animation(.easeOut(duration: 0.4), value: isLoading)
+            .animation(.easeOut(duration: 0.4), value: minTimePassed)
+            .animation(.easeOut(duration: 0.5), value: showOnboarding)
             .task {
                 // Start minimum 2s timer and data loading in parallel
                 async let timer: () = Task.sleep(nanoseconds: 2_000_000_000)

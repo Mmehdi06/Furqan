@@ -139,15 +139,28 @@ struct QPCTextLine: UIViewRepresentable {
     }
 
     func updateUIView(_ label: QPCLabel, context: Context) {
-        label.words = words
-        label.pageNumber = pageNumber
-        label.fontSize = fontSize
-        label.isDarkMode = isDarkMode
+        // Always update context menu properties (lightweight)
         label.allLines = allLines
         label.pageBgColor = pageBackground
         label.onAyahAction = onAyahAction
         label.highlightColorForMenu = highlightColor
         label.currentTheme = theme
+        label.words = words
+        label.pageNumber = pageNumber
+        label.fontSize = fontSize
+
+        // Skip expensive attributed string rebuild if nothing visual changed
+        if label.lastRenderedDarkMode == isDarkMode &&
+           label.lastRenderedHighlight == highlightedAyah &&
+           label.lastRenderedWordCount == words.count {
+            label.isDarkMode = isDarkMode
+            return
+        }
+
+        label.isDarkMode = isDarkMode
+        label.lastRenderedHighlight = highlightedAyah
+        label.lastRenderedDarkMode = isDarkMode
+        label.lastRenderedWordCount = words.count
 
         let font = QuranFontManager.shared.uiFont(forPage: pageNumber, size: fontSize, dark: isDarkMode)
 
@@ -214,6 +227,11 @@ class QPCLabel: UILabel, UIContextMenuInteractionDelegate {
     var highlightColorForMenu: UIColor? = nil
     var currentTheme: ReadingTheme = .light
     var wordRanges: [(range: NSRange, wordIndex: Int)] = []
+
+    // Track last rendered state to skip unnecessary attributed string rebuilds
+    var lastRenderedHighlight: AyahHighlight?
+    var lastRenderedDarkMode: Bool?
+    var lastRenderedWordCount: Int = -1
 
     private var menuInteraction: UIContextMenuInteraction?
 

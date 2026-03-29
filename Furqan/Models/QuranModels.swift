@@ -25,8 +25,18 @@ struct QuranLine: Identifiable {
     let surahNumber: Int?
     let words: [QuranWord]
 
-    /// Unique ayahs present on this line
-    var ayahsOnLine: [(surah: Int, ayah: Int)] {
+    /// Unique ayahs present on this line (pre-computed at init)
+    let ayahsOnLine: [(surah: Int, ayah: Int)]
+
+    init(id: String, lineNumber: Int, lineType: LineType, isCentered: Bool, surahNumber: Int?, words: [QuranWord]) {
+        self.id = id
+        self.lineNumber = lineNumber
+        self.lineType = lineType
+        self.isCentered = isCentered
+        self.surahNumber = surahNumber
+        self.words = words
+
+        // Pre-compute unique ayahs
         var seen = Set<String>()
         var result: [(surah: Int, ayah: Int)] = []
         for word in words {
@@ -36,7 +46,7 @@ struct QuranLine: Identifiable {
                 result.append((word.surah, word.ayah))
             }
         }
-        return result
+        self.ayahsOnLine = result
     }
 }
 
@@ -62,7 +72,7 @@ struct SurahInfo: Identifiable {
 // MARK: - Search Result
 
 struct SearchResult: Identifiable {
-    let id = UUID()
+    var id: String { "\(surah):\(ayah)" }
     let surah: Int
     let ayah: Int
     let verseText: String

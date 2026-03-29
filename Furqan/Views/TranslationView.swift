@@ -4,6 +4,8 @@ struct TranslationView: View {
     let surah: Int
     let ayah: Int
     @Environment(\.dismiss) private var dismiss
+    @State private var translationText: String?
+    @State private var isLoading = true
 
     var body: some View {
         NavigationStack {
@@ -14,7 +16,10 @@ struct TranslationView: View {
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .center)
 
-                    if let text = TafsirService.shared.translation(forSurah: surah, ayah: ayah) {
+                    if isLoading {
+                        ProgressView()
+                            .frame(maxWidth: .infinity)
+                    } else if let text = translationText {
                         Text(text)
                             .font(.body)
                             .lineSpacing(6)
@@ -31,6 +36,14 @@ struct TranslationView: View {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Close") { dismiss() }
                 }
+            }
+            .task {
+                let s = surah, a = ayah
+                let text = await Task.detached {
+                    TafsirService.shared.translation(forSurah: s, ayah: a)
+                }.value
+                translationText = text
+                isLoading = false
             }
         }
     }

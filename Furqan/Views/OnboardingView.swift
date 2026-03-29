@@ -771,6 +771,10 @@ private struct ThemesPage: View {
                 autoTimer = nil
             }
         }
+        .onDisappear {
+            autoTimer?.invalidate()
+            autoTimer = nil
+        }
     }
 
     private func themeCard(theme: (name: String, bg: Color, text: Color, icon: String)) -> some View {

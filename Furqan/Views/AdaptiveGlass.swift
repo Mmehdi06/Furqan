@@ -17,7 +17,8 @@ private struct AdaptiveGlassMaterialModifier<S: Shape>: ViewModifier {
                 .background(fallbackFill, in: shape)
                 .overlay {
                     shape
-                        .stroke(fallbackStroke, lineWidth: 0.8)
+                        .
+                    stroke(fallbackStroke, lineWidth: 0.8)
                 }
         }
     }
