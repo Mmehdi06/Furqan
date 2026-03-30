@@ -7,6 +7,7 @@ final class TafsirService {
     private var tafsirDB: OpaquePointer?
     private var surahInfoDB: OpaquePointer?
     private var translationDB: OpaquePointer?
+    private var currentTranslationDBName: String?
 
     private init() {}
 
@@ -18,9 +19,15 @@ final class TafsirService {
         if surahInfoDB == nil {
             surahInfoDB = openDB("surahInfo")
         }
-        if translationDB == nil {
-            translationDB = openDB("translation-fr")
-        }
+        loadTranslationDB(for: TranslationManager.shared.current)
+    }
+
+    func loadTranslationDB(for language: TranslationLanguage) {
+        let dbName = language.dbName
+        guard dbName != currentTranslationDBName else { return }
+        if let db = translationDB { sqlite3_close(db) }
+        translationDB = openDB(dbName)
+        currentTranslationDBName = dbName
     }
 
     deinit {
@@ -110,6 +117,12 @@ final class TafsirService {
                 with: "",
                 options: .regularExpression
             )
+            // Remove <sup> footnote tags from English translations
+            text = text.replacingOccurrences(
+                of: "<sup[^>]*>.*?</sup>",
+                with: "",
+                options: .regularExpression
+            )
             return text.trimmingCharacters(in: .whitespacesAndNewlines)
         }
         return nil
@@ -196,6 +209,12 @@ final class TafsirService {
         text = text.replacingOccurrences(of: "&quot;", with: "\"")
         text = text.replacingOccurrences(of: "&#39;", with: "'")
         text = text.replacingOccurrences(of: "&nbsp;", with: " ")
+        // Remove inline footnotes in [[ ]]
+        text = text.replacingOccurrences(
+            of: "\\[\\[.*?\\]\\]",
+            with: "",
+            options: .regularExpression
+        )
         text = text.replacingOccurrences(of: "\\s*\\n\\s*\\n\\s*", with: "\n\n", options: .regularExpression)
         text = text.trimmingCharacters(in: .whitespacesAndNewlines)
         return text

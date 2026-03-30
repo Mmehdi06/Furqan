@@ -21,9 +21,10 @@ struct MushafPagerView: View {
     @State private var tafsirTarget: (surah: Int, ayah: Int)?
     @State private var translationTarget: (surah: Int, ayah: Int)?
     @State private var surahInfoTarget: Int?
-    @State private var showThemePicker = false
+    @State private var showSettings = false
 
     @StateObject private var bookmarkManager = BookmarkManager.shared
+    @StateObject private var translationManager = TranslationManager.shared
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.readingTheme) private var theme
 
@@ -112,8 +113,8 @@ struct MushafPagerView: View {
                 highlightAyah(surah: surah, ayah: ayah)
             }
         }
-        .sheet(isPresented: $showThemePicker) {
-            ThemePickerView(themeManager: themeManager)
+        .sheet(isPresented: $showSettings) {
+            SettingsView(themeManager: themeManager, translationManager: translationManager)
                 .presentationDetents([.large])
         }
         .sheet(item: Binding(
@@ -201,10 +202,10 @@ struct MushafPagerView: View {
 
             toolbarCluster {
                 toolbarButton(
-                    systemName: themeManager.current.icon,
-                    accessibilityIdentifier: "themeButton"
+                    systemName: "gearshape",
+                    accessibilityIdentifier: "settingsButton"
                 ) {
-                    showThemePicker = true
+                    showSettings = true
                 }
 
                 toolbarButton(
