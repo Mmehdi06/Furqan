@@ -3,12 +3,15 @@ import SwiftUI
 struct SettingsView: View {
     @ObservedObject var themeManager: ThemeManager
     @ObservedObject var translationManager: TranslationManager
+    @ObservedObject var statsManager = ReadingStatsManager.shared
     @Environment(\.dismiss) private var dismiss
+    @State private var showStats = false
 
     var body: some View {
         NavigationStack {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 24) {
+                    readingStatsSection
                     translationSection
                     themeSection
                 }
@@ -25,7 +28,119 @@ struct SettingsView: View {
                 }
             }
         }
+        .sheet(isPresented: $showStats) {
+            ReadingStatsView(statsManager: statsManager)
+                .presentationDetents([.large])
+        }
         .accessibilityIdentifier("settingsView")
+    }
+
+    // MARK: - Reading Stats Section
+
+    private var readingStatsSection: some View {
+        Button {
+            showStats = true
+        } label: {
+            AdaptiveGlassCard(
+                tint: sectionTint,
+                cornerRadius: 30,
+                fallbackFill: AnyShapeStyle(.thinMaterial),
+                fallbackStroke: strokeColor
+            ) {
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack {
+                        Label("Reading Progress", systemImage: "chart.bar.fill")
+                            .font(.headline)
+                            .foregroundStyle(themeManager.current.textColor)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(themeManager.current.tertiaryTextColor)
+                    }
+
+                    HStack(spacing: 14) {
+                        miniStat(
+                            icon: "flame.fill",
+                            iconColor: .orange,
+                            value: "\(statsManager.currentStreak)",
+                            label: "Streak"
+                        )
+                        miniStat(
+                            icon: "book.fill",
+                            iconColor: .green,
+                            value: "\(statsManager.todayPages.count)",
+                            label: "Today"
+                        )
+                        miniStat(
+                            icon: "clock.fill",
+                            iconColor: .blue,
+                            value: statsManager.todayReadingTimeFormatted,
+                            label: "Time"
+                        )
+                        miniStat(
+                            icon: "checkmark.circle.fill",
+                            iconColor: .purple,
+                            value: String(format: "%.0f%%", statsManager.completionPercentage),
+                            label: "Done"
+                        )
+                    }
+
+                    // Mini progress bar
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(themeManager.current.textColor.opacity(0.08))
+                                .frame(height: 8)
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(
+                                    LinearGradient(
+                                        colors: [.green, .green.opacity(0.6)],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .frame(
+                                    width: max(0, geo.size.width * CGFloat(statsManager.completionPercentage / 100.0)),
+                                    height: 8
+                                )
+                        }
+                    }
+                    .frame(height: 8)
+
+                    HStack {
+                        Text("\(statsManager.totalPagesRead) / 604 pages")
+                            .font(.caption)
+                            .foregroundStyle(themeManager.current.secondaryTextColor)
+                        Spacer()
+                        Text("View details")
+                            .font(.caption)
+                            .foregroundStyle(themeManager.current.secondaryTextColor)
+                    }
+                }
+                .padding(20)
+            }
+            .padding(.horizontal, 24)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func miniStat(icon: String, iconColor: Color, value: String, label: String) -> some View {
+        VStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(iconColor)
+            Text(value)
+                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .foregroundStyle(themeManager.current.textColor)
+                .monospacedDigit()
+                .minimumScaleFactor(0.7)
+                .lineLimit(1)
+            Text(label)
+                .font(.caption2)
+                .foregroundStyle(themeManager.current.secondaryTextColor)
+        }
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Translation Section

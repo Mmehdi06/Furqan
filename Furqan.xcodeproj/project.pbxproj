@@ -6,8 +6,37 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		FA000001300000000000001B /* FurqanWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = FA00000130000000000000011 /* FurqanWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		FA000001300000000000001C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0150A65B2F71CCDD003080FA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = FA00000130000000000000010;
+			remoteInfo = FurqanWidgetExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		FA000001300000000000001A /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				FA000001300000000000001B /* FurqanWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		0150A6632F71CCDD003080FA /* Furqan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Furqan.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		FA00000130000000000000011 /* FurqanWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = FurqanWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -16,10 +45,22 @@
 			path = Furqan;
 			sourceTree = "<group>";
 		};
+		FA00000130000000000000012 /* FurqanWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = FurqanWidget;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		0150A6602F71CCDD003080FA /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FA00000130000000000000013 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -33,6 +74,7 @@
 			isa = PBXGroup;
 			children = (
 				0150A6652F71CCDD003080FA /* Furqan */,
+				FA00000130000000000000012 /* FurqanWidget */,
 				0150A6642F71CCDD003080FA /* Products */,
 			);
 			sourceTree = "<group>";
@@ -41,6 +83,7 @@
 			isa = PBXGroup;
 			children = (
 				0150A6632F71CCDD003080FA /* Furqan.app */,
+				FA00000130000000000000011 /* FurqanWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -55,10 +98,12 @@
 				0150A65F2F71CCDD003080FA /* Sources */,
 				0150A6602F71CCDD003080FA /* Frameworks */,
 				0150A6612F71CCDD003080FA /* Resources */,
+				FA000001300000000000001A /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				FA000001300000000000001D /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				0150A6652F71CCDD003080FA /* Furqan */,
@@ -69,6 +114,28 @@
 			productName = Qurany;
 			productReference = 0150A6632F71CCDD003080FA /* Furqan.app */;
 			productType = "com.apple.product-type.application";
+		};
+		FA00000130000000000000010 /* FurqanWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FA00000130000000000000019 /* Build configuration list for PBXNativeTarget "FurqanWidgetExtension" */;
+			buildPhases = (
+				FA00000130000000000000014 /* Sources */,
+				FA00000130000000000000013 /* Frameworks */,
+				FA00000130000000000000015 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				FA00000130000000000000012 /* FurqanWidget */,
+			);
+			name = FurqanWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = FurqanWidgetExtension;
+			productReference = FA00000130000000000000011 /* FurqanWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -81,6 +148,9 @@
 				LastUpgradeCheck = 2640;
 				TargetAttributes = {
 					0150A6622F71CCDD003080FA = {
+						CreatedOnToolsVersion = 16.2;
+					};
+					FA00000130000000000000010 = {
 						CreatedOnToolsVersion = 16.2;
 					};
 				};
@@ -100,12 +170,20 @@
 			projectRoot = "";
 			targets = (
 				0150A6622F71CCDD003080FA /* Furqan */,
+				FA00000130000000000000010 /* FurqanWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		0150A6612F71CCDD003080FA /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FA00000130000000000000015 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -122,7 +200,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		FA00000130000000000000014 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		FA000001300000000000001D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = FA00000130000000000000010 /* FurqanWidgetExtension */;
+			targetProxy = FA000001300000000000001C /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		0150A6712F71CCDF003080FA /* Debug */ = {
@@ -251,10 +344,11 @@
 		0150A6742F71CCDF003080FA /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+					ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+					ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+					CODE_SIGN_ENTITLEMENTS = Furqan.entitlements;
+					CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_ASSET_PATHS = "\"Furqan/Preview Content\"";
 				DEVELOPMENT_TEAM = MD39B8T5GT;
 				ENABLE_PREVIEWS = YES;
@@ -285,10 +379,11 @@
 		0150A6752F71CCDF003080FA /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+					ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+					ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+					CODE_SIGN_ENTITLEMENTS = Furqan.entitlements;
+					CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_ASSET_PATHS = "\"Furqan/Preview Content\"";
 				DEVELOPMENT_TEAM = MD39B8T5GT;
 				ENABLE_PREVIEWS = YES;
@@ -316,6 +411,70 @@
 			};
 			name = Release;
 		};
+		FA00000130000000000000016 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+					ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+					ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+					CODE_SIGN_ENTITLEMENTS = FurqanWidget.entitlements;
+					CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = MD39B8T5GT;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = FurqanWidgetInfo.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = FurqanWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mehdi.furqan.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		FA00000130000000000000017 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+					ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+					ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+					CODE_SIGN_ENTITLEMENTS = FurqanWidget.entitlements;
+					CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = MD39B8T5GT;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = FurqanWidgetInfo.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = FurqanWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mehdi.furqan.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -333,6 +492,15 @@
 			buildConfigurations = (
 				0150A6742F71CCDF003080FA /* Debug */,
 				0150A6752F71CCDF003080FA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		FA00000130000000000000019 /* Build configuration list for PBXNativeTarget "FurqanWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FA00000130000000000000016 /* Debug */,
+				FA00000130000000000000017 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

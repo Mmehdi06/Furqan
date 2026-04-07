@@ -25,6 +25,7 @@ struct MushafPagerView: View {
 
     @StateObject private var bookmarkManager = BookmarkManager.shared
     @StateObject private var translationManager = TranslationManager.shared
+    @StateObject private var statsManager = ReadingStatsManager.shared
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.readingTheme) private var theme
 
@@ -64,6 +65,14 @@ struct MushafPagerView: View {
             .ignoresSafeArea(edges: .bottom)
             .onChange(of: currentPage) { _, newPage in
                 UserDefaults.standard.set(newPage, forKey: lastPageKey)
+                statsManager.recordPageView(newPage)
+            }
+            .onAppear {
+                statsManager.startSession()
+                statsManager.recordPageView(currentPage)
+            }
+            .onDisappear {
+                statsManager.endSession()
             }
 
             // Toolbar overlay
