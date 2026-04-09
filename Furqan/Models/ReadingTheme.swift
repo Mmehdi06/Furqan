@@ -75,10 +75,6 @@ enum ReadingTheme: String, CaseIterable, Identifiable, Codable {
         }
     }
 
-    var swiftHighlightColor: Color {
-        Color(uiHighlightColor)
-    }
-
     var uiHighlightColor: UIColor {
         switch self {
         case .light:  return UIColor(red: 0.85, green: 0.93, blue: 1.0, alpha: 1.0)

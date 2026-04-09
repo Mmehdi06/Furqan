@@ -9,7 +9,6 @@ final class ReadingStatsManager: ObservableObject {
 
     private let defaults = UserDefaults.standard
     private let pagesKey = "reading_stats_pages"
-    private let sessionsKey = "reading_stats_sessions"
     private let streakKey = "reading_stats_streak"
     private let bestStreakKey = "reading_stats_best_streak"
     private let lastReadDateKey = "reading_stats_last_date"
@@ -188,7 +187,6 @@ final class ReadingStatsManager: ObservableObject {
 
     func resetAll() {
         defaults.removeObject(forKey: pagesKey)
-        defaults.removeObject(forKey: sessionsKey)
         defaults.removeObject(forKey: streakKey)
         defaults.removeObject(forKey: bestStreakKey)
         defaults.removeObject(forKey: lastReadDateKey)
