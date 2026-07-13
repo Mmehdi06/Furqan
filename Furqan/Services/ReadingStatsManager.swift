@@ -325,3 +325,111 @@ final class ReadingStatsManager: ObservableObject {
         #endif
     }
 }
+
+final class ReadingPlanManager: ObservableObject {
+    static let shared = ReadingPlanManager()
+
+    @Published private(set) var activePlan: ReadingPlan?
+
+    private let defaults = UserDefaults.standard
+    private let storageKey = "reading_plan_active_v1"
+    private let promptDismissedKey = "reading_plan_prompt_dismissed_v1"
+
+    private init() {
+        load()
+        persistForWidget()
+    }
+
+    var shouldSuppressPrompt: Bool {
+        defaults.bool(forKey: promptDismissedKey) || activePlan != nil
+    }
+
+    func dismissPrompt() {
+        defaults.set(true, forKey: promptDismissedKey)
+    }
+
+    func createKhatmPlan(days: Int) {
+        createPlan(kind: .khatm, title: "Full Mushaf", startPage: 1, endPage: 604, days: days)
+    }
+
+    func createCustomPlan(startPage: Int, endPage: Int, days: Int) {
+        createPlan(
+            kind: .customRange,
+            title: "Pages \(startPage)-\(endPage)",
+            startPage: min(startPage, endPage),
+            endPage: max(startPage, endPage),
+            days: days
+        )
+    }
+
+    func markPageCompleted(_ page: Int) {
+        guard var plan = activePlan, plan.contains(page: page), !plan.completedPages.contains(page) else { return }
+        plan.completedPages.insert(page)
+        if plan.completedPages.count >= plan.totalPages {
+            plan.status = .completed
+        }
+        activePlan = plan
+        save()
+        persistForWidget()
+    }
+
+    func resetActivePlan() {
+        activePlan = nil
+        defaults.removeObject(forKey: storageKey)
+        persistForWidget()
+    }
+
+    private func createPlan(kind: ReadingPlanKind, title: String, startPage: Int, endPage: Int, days: Int) {
+        let clampedStart = min(max(startPage, 1), 604)
+        let clampedEnd = min(max(endPage, clampedStart), 604)
+        let target = Calendar.current.date(byAdding: .day, value: max(1, days) - 1, to: Date()) ?? Date()
+        activePlan = ReadingPlan(
+            id: UUID(),
+            kind: kind,
+            title: title,
+            startPage: clampedStart,
+            endPage: clampedEnd,
+            startDate: Date(),
+            targetEndDate: target,
+            completedPages: [],
+            status: .active
+        )
+        save()
+        persistForWidget()
+    }
+
+    private func save() {
+        guard let activePlan,
+              let data = try? JSONEncoder().encode(activePlan)
+        else { return }
+        defaults.set(data, forKey: storageKey)
+    }
+
+    private func load() {
+        guard let data = defaults.data(forKey: storageKey),
+              let decoded = try? JSONDecoder().decode(ReadingPlan.self, from: data)
+        else { return }
+        activePlan = decoded
+    }
+
+    private func persistForWidget() {
+        guard let defaults = UserDefaults(suiteName: "group.com.mehdi.furqan") else { return }
+        if let plan = activePlan {
+            defaults.set(plan.title, forKey: "widget_plan_title")
+            defaults.set(plan.dailyTargetPages(), forKey: "widget_plan_today_target")
+            defaults.set(plan.completedCount, forKey: "widget_plan_completed")
+            defaults.set(plan.totalPages, forKey: "widget_plan_total")
+            defaults.set(plan.completionPercentage, forKey: "widget_plan_completion")
+        } else {
+            defaults.removeObject(forKey: "widget_plan_title")
+            defaults.set(0, forKey: "widget_plan_today_target")
+            defaults.set(0, forKey: "widget_plan_completed")
+            defaults.set(0, forKey: "widget_plan_total")
+            defaults.set(0.0, forKey: "widget_plan_completion")
+        }
+        defaults.synchronize()
+        #if canImport(WidgetKit)
+        WidgetCenter.shared.reloadTimelines(ofKind: "ReadingProgressWidget")
+        #endif
+    }
+}

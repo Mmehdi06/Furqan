@@ -9,6 +9,7 @@ struct SurahIndexView: View {
 
     @State private var searchText = ""
     @State private var filterMode: FilterMode = .all
+    private var palette: NativeGlassPalette { theme.nativeGlassPalette }
 
     enum FilterMode: String, CaseIterable {
         case all = "All"
@@ -72,6 +73,7 @@ struct SurahIndexView: View {
             .navigationTitle("Surahs")
             .navigationBarTitleDisplayMode(.inline)
             .preferredColorScheme(theme.colorScheme)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Close") { dismiss() }
@@ -81,12 +83,7 @@ struct SurahIndexView: View {
     }
 
     private var headerCard: some View {
-        AdaptiveGlassCard(
-            tint: chromeTint,
-            cornerRadius: 28,
-            fallbackFill: cardFill,
-            fallbackStroke: cardStroke
-        ) {
+        NativeGlassSectionCard(cornerRadius: 28, tint: palette.sectionTint, elevated: true) {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 4) {
@@ -106,7 +103,7 @@ struct SurahIndexView: View {
                         .padding(11)
                         .adaptiveGlass(
                             in: Circle(),
-                            tint: chromeTint,
+                            tint: palette.chromeTint,
                             fallbackFill: iconFill,
                             fallbackStroke: cardStroke
                         )
@@ -123,12 +120,7 @@ struct SurahIndexView: View {
     }
 
     private var filterSection: some View {
-        AdaptiveGlassCard(
-            tint: chromeTint,
-            cornerRadius: 24,
-            fallbackFill: cardFill,
-            fallbackStroke: cardStroke
-        ) {
+        NativeGlassSectionCard(cornerRadius: 24, tint: palette.sectionTint, elevated: true) {
             VStack(alignment: .leading, spacing: 14) {
                 Text("Filter by revelation")
                     .font(.headline)
@@ -175,15 +167,9 @@ struct SurahIndexView: View {
                 .foregroundStyle(isSelected ? theme.textColor : theme.secondaryTextColor)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 11)
-                .adaptiveGlass(
-                    in: Capsule(),
-                    tint: isSelected ? chromeTint : nil,
-                    fallbackFill: isSelected ? selectedChipFill : chipFill,
-                    fallbackStroke: cardStroke
-                )
                 .contentShape(Capsule())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(NativeGlassRoundedButtonStyle(cornerRadius: 999, tint: isSelected ? palette.chromeTint : nil, elevated: isSelected))
     }
 
     private func surahCard(_ surah: SurahInfo) -> some View {
@@ -242,9 +228,9 @@ struct SurahIndexView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .adaptiveGlass(
             in: RoundedRectangle(cornerRadius: 26, style: .continuous),
-            tint: chromeTint,
-            fallbackFill: cardFill,
-            fallbackStroke: cardStroke
+            tint: palette.sectionTint,
+            fallbackFill: palette.elevatedFill,
+            fallbackStroke: palette.stroke
         )
         .contentShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
     }
@@ -320,34 +306,14 @@ struct SurahIndexView: View {
         .frame(maxWidth: .infinity)
         .adaptiveGlass(
             in: RoundedRectangle(cornerRadius: 28, style: .continuous),
-            tint: chromeTint,
-            fallbackFill: cardFill,
-            fallbackStroke: cardStroke
+            tint: palette.sectionTint,
+            fallbackFill: palette.cardFill,
+            fallbackStroke: palette.stroke
         )
     }
 
-    private var chromeTint: Color? {
-        switch theme {
-        case .light:
-            return .white.opacity(0.08)
-        case .dark:
-            return .gray.opacity(0.12)
-        case .sepia:
-            return .brown.opacity(0.16)
-        case .amoled:
-            return .white.opacity(0.05)
-        }
-    }
-
     private var cardFill: AnyShapeStyle {
-        switch theme {
-        case .amoled:
-            return AnyShapeStyle(Color.white.opacity(0.05))
-        case .sepia:
-            return AnyShapeStyle(theme.pageBackground.opacity(0.94))
-        default:
-            return AnyShapeStyle(.thinMaterial)
-        }
+        palette.cardFill
     }
 
     private var iconFill: AnyShapeStyle {
@@ -360,37 +326,14 @@ struct SurahIndexView: View {
     }
 
     private var chipFill: AnyShapeStyle {
-        switch theme {
-        case .amoled:
-            return AnyShapeStyle(Color.white.opacity(0.04))
-        case .sepia:
-            return AnyShapeStyle(theme.pageBackground.opacity(0.92))
-        default:
-            return AnyShapeStyle(.ultraThinMaterial)
-        }
+        palette.cardFill
     }
 
     private var selectedChipFill: AnyShapeStyle {
-        switch theme {
-        case .amoled:
-            return AnyShapeStyle(Color.white.opacity(0.08))
-        case .sepia:
-            return AnyShapeStyle(theme.pageBackground.opacity(0.98))
-        default:
-            return AnyShapeStyle(.regularMaterial)
-        }
+        palette.elevatedFill
     }
 
     private var cardStroke: Color {
-        switch theme {
-        case .light:
-            return .black.opacity(0.06)
-        case .dark:
-            return .white.opacity(0.08)
-        case .sepia:
-            return Color(red: 0.55, green: 0.45, blue: 0.33).opacity(0.18)
-        case .amoled:
-            return .white.opacity(0.05)
-        }
+        palette.stroke
     }
 }

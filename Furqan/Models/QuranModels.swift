@@ -121,3 +121,85 @@ struct Bookmark: Identifiable, Codable {
         return "\(surahName) — Page \(pageNumber)"
     }
 }
+
+// MARK: - Saved Ayah
+
+struct SavedAyah: Identifiable, Codable {
+    let id: UUID
+    let surah: Int
+    let ayah: Int
+    let pageNumber: Int
+    let surahName: String
+    let arabicText: String
+    var note: String
+    let dateCreated: Date
+    var dateUpdated: Date
+
+    var reference: String {
+        "\(surah):\(ayah)"
+    }
+
+    var hasNote: Bool {
+        !note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+}
+
+// MARK: - Reading Plan
+
+enum ReadingPlanKind: String, Codable {
+    case khatm
+    case customRange
+}
+
+enum ReadingPlanStatus: String, Codable {
+    case active
+    case completed
+}
+
+struct ReadingPlan: Codable, Identifiable {
+    let id: UUID
+    var kind: ReadingPlanKind
+    var title: String
+    var startPage: Int
+    var endPage: Int
+    var startDate: Date
+    var targetEndDate: Date
+    var completedPages: Set<Int>
+    var status: ReadingPlanStatus
+
+    var totalPages: Int {
+        max(0, endPage - startPage + 1)
+    }
+
+    var completedCount: Int {
+        completedPages.count
+    }
+
+    var remainingPages: Int {
+        max(0, totalPages - completedCount)
+    }
+
+    var completionPercentage: Double {
+        guard totalPages > 0 else { return 0 }
+        return Double(completedCount) / Double(totalPages) * 100
+    }
+
+    var isComplete: Bool {
+        status == .completed || completedCount >= totalPages
+    }
+
+    func contains(page: Int) -> Bool {
+        page >= startPage && page <= endPage
+    }
+
+    func daysRemaining(from date: Date = Date(), calendar: Calendar = .current) -> Int {
+        let today = calendar.startOfDay(for: date)
+        let target = calendar.startOfDay(for: targetEndDate)
+        return max(0, calendar.dateComponents([.day], from: today, to: target).day ?? 0)
+    }
+
+    func dailyTargetPages(from date: Date = Date(), calendar: Calendar = .current) -> Int {
+        let days = max(1, daysRemaining(from: date, calendar: calendar) + 1)
+        return max(1, Int(ceil(Double(remainingPages) / Double(days))))
+    }
+}

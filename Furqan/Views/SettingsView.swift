@@ -4,14 +4,19 @@ struct SettingsView: View {
     @ObservedObject var themeManager: ThemeManager
     @ObservedObject var translationManager: TranslationManager
     @ObservedObject var statsManager = ReadingStatsManager.shared
+    @ObservedObject var planManager = ReadingPlanManager.shared
     @Environment(\.dismiss) private var dismiss
     @State private var showStats = false
+    @State private var showReadingPlan = false
+
+    private var palette: NativeGlassPalette { themeManager.current.nativeGlassPalette }
 
     var body: some View {
         NavigationStack {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 24) {
                     readingStatsSection
+                    readingPlanSection
                     translationSection
                     themeSection
                 }
@@ -22,6 +27,7 @@ struct SettingsView: View {
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .preferredColorScheme(themeManager.current.colorScheme)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Close") { dismiss() }
@@ -30,6 +36,10 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $showStats) {
             ReadingStatsView(statsManager: statsManager)
+                .presentationDetents([.large])
+        }
+        .sheet(isPresented: $showReadingPlan) {
+            ReadingPlanView(planManager: planManager, initialStartPage: 1)
                 .presentationDetents([.large])
         }
         .accessibilityIdentifier("settingsView")
@@ -41,12 +51,7 @@ struct SettingsView: View {
         Button {
             showStats = true
         } label: {
-            AdaptiveGlassCard(
-                tint: sectionTint,
-                cornerRadius: 30,
-                fallbackFill: AnyShapeStyle(.thinMaterial),
-                fallbackStroke: strokeColor
-            ) {
+            NativeGlassSectionCard(cornerRadius: 30, tint: palette.sectionTint, elevated: true) {
                 VStack(alignment: .leading, spacing: 16) {
                     HStack {
                         Label("Reading Progress", systemImage: "chart.bar.fill")
@@ -143,15 +148,66 @@ struct SettingsView: View {
         .frame(maxWidth: .infinity)
     }
 
+    // MARK: - Reading Plan Section
+
+    private var readingPlanSection: some View {
+        Button {
+            showReadingPlan = true
+        } label: {
+            NativeGlassSectionCard(cornerRadius: 30, tint: palette.sectionTint, elevated: true) {
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack {
+                        Label("Reading Plan", systemImage: "target")
+                            .font(.headline)
+                            .foregroundStyle(themeManager.current.textColor)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(themeManager.current.tertiaryTextColor)
+                    }
+
+                    if let plan = planManager.activePlan {
+                        HStack(spacing: 14) {
+                            miniStat(icon: "checkmark.circle.fill", iconColor: .green, value: "\(plan.completedCount)", label: "Done")
+                            miniStat(icon: "book.pages.fill", iconColor: .blue, value: "\(plan.dailyTargetPages())", label: "Daily")
+                            miniStat(icon: "calendar", iconColor: .purple, value: "\(plan.daysRemaining())", label: "Days")
+                            miniStat(icon: "flag.fill", iconColor: .orange, value: "\(plan.remainingPages)", label: "Left")
+                        }
+
+                        GeometryReader { geo in
+                            ZStack(alignment: .leading) {
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(themeManager.current.textColor.opacity(0.08))
+                                    .frame(height: 8)
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(LinearGradient(colors: [.green, .green.opacity(0.6)], startPoint: .leading, endPoint: .trailing))
+                                    .frame(width: max(0, geo.size.width * CGFloat(plan.completionPercentage / 100)), height: 8)
+                            }
+                        }
+                        .frame(height: 8)
+
+                        Text("\(plan.title) · \(plan.startPage)-\(plan.endPage)")
+                            .font(.caption)
+                            .foregroundStyle(themeManager.current.secondaryTextColor)
+                    } else {
+                        Text("Create a private page-based plan and track daily progress on this device.")
+                            .font(.subheadline)
+                            .foregroundStyle(themeManager.current.secondaryTextColor)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+                .padding(20)
+            }
+            .padding(.horizontal, 24)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
     // MARK: - Translation Section
 
     private var translationSection: some View {
-        AdaptiveGlassCard(
-            tint: sectionTint,
-            cornerRadius: 30,
-            fallbackFill: AnyShapeStyle(.thinMaterial),
-            fallbackStroke: strokeColor
-        ) {
+        NativeGlassSectionCard(cornerRadius: 30, tint: palette.sectionTint, elevated: true) {
             VStack(alignment: .leading, spacing: 18) {
                 VStack(alignment: .leading, spacing: 4) {
                     Label("Translation", systemImage: "globe")
@@ -203,25 +259,20 @@ struct SettingsView: View {
                     .foregroundStyle(isSelected ? theme.textColor : theme.secondaryTextColor.opacity(0.4))
             }
             .padding(14)
-            .adaptiveGlass(
-                in: RoundedRectangle(cornerRadius: 18, style: .continuous),
-                tint: isSelected ? selectedTint : nil,
-                fallbackFill: AnyShapeStyle(theme.pageBackground.opacity(isSelected ? 0.96 : 0.88)),
-                fallbackStroke: isSelected ? theme.textColor.opacity(0.18) : strokeColor
+            .buttonStyle(
+                NativeGlassRoundedButtonStyle(
+                    cornerRadius: 18,
+                    tint: isSelected ? selectedTint : palette.chromeTint,
+                    elevated: isSelected
+                )
             )
         }
-        .buttonStyle(.plain)
     }
 
     // MARK: - Theme Section
 
     private var themeSection: some View {
-        AdaptiveGlassCard(
-            tint: sectionTint,
-            cornerRadius: 30,
-            fallbackFill: AnyShapeStyle(.thinMaterial),
-            fallbackStroke: strokeColor
-        ) {
+        NativeGlassSectionCard(cornerRadius: 30, tint: palette.sectionTint, elevated: true) {
             VStack(alignment: .leading, spacing: 18) {
                 VStack(alignment: .leading, spacing: 4) {
                     Label("Reading Theme", systemImage: themeManager.current.icon)
@@ -263,8 +314,8 @@ struct SettingsView: View {
         .adaptiveGlass(
             in: RoundedRectangle(cornerRadius: 20, style: .continuous),
             tint: previewTint(for: theme),
-            fallbackFill: AnyShapeStyle(theme.pageBackground.opacity(theme == .light ? 0.88 : 0.94)),
-            fallbackStroke: strokeColor
+            fallbackFill: theme.nativeGlassPalette.elevatedFill,
+            fallbackStroke: theme.nativeGlassPalette.stroke
         )
         .id("theme-preview-\(theme.rawValue)")
     }
@@ -315,17 +366,17 @@ struct SettingsView: View {
             }
             .padding(14)
             .frame(maxWidth: .infinity, minHeight: 110, alignment: .topLeading)
-            .adaptiveGlass(
-                in: RoundedRectangle(cornerRadius: 20, style: .continuous),
-                tint: isSelected ? previewTint(for: theme) : nil,
-                fallbackFill: AnyShapeStyle(theme.pageBackground.opacity(isSelected ? 0.96 : 0.88)),
-                fallbackStroke: isSelected ? theme.textColor.opacity(0.18) : strokeColor
-            )
             .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             .scaleEffect(isSelected ? 1 : 0.985)
         }
         .frame(maxWidth: .infinity)
-        .buttonStyle(.plain)
+        .buttonStyle(
+            NativeGlassRoundedButtonStyle(
+                cornerRadius: 20,
+                tint: isSelected ? previewTint(for: theme) : palette.chromeTint,
+                elevated: isSelected
+            )
+        )
     }
 
     // MARK: - Helpers
@@ -347,7 +398,7 @@ struct SettingsView: View {
     }
 
     private var sectionTint: Color? {
-        themeManager.current == .sepia ? Color.brown.opacity(0.18) : nil
+        palette.sectionTint
     }
 
     private var selectedTint: Color? {
@@ -364,11 +415,6 @@ struct SettingsView: View {
     }
 
     private var strokeColor: Color {
-        switch themeManager.current {
-        case .light:  return .black.opacity(0.06)
-        case .dark:   return .white.opacity(0.06)
-        case .sepia:  return Color(red: 0.55, green: 0.46, blue: 0.35).opacity(0.18)
-        case .amoled: return .white.opacity(0.04)
-        }
+        palette.stroke
     }
 }

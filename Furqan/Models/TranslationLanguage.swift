@@ -41,16 +41,16 @@ enum TranslationLanguage: String, CaseIterable, Identifiable {
 
 final class TranslationManager: ObservableObject {
     static let shared = TranslationManager()
+    private let translationKey = "translation_language"
 
     @Published var current: TranslationLanguage {
         didSet {
-            UserDefaults.standard.set(current.rawValue, forKey: "translation_language")
+            UserDefaults.standard.set(current.rawValue, forKey: translationKey)
         }
     }
 
     private init() {
-        let saved = UserDefaults.standard.string(forKey: "translation_language") ?? "fr"
+        let saved = UserDefaults.standard.string(forKey: translationKey) ?? "fr"
         current = TranslationLanguage(rawValue: saved) ?? .french
     }
 }
-

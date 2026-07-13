@@ -7,6 +7,7 @@ struct TranslationView: View {
     @Environment(\.readingTheme) private var theme
     @State private var translationText: String?
     @State private var isLoading = true
+    private var palette: NativeGlassPalette { theme.nativeGlassPalette }
 
     var body: some View {
         NavigationStack {
@@ -25,12 +26,7 @@ struct TranslationView: View {
                         VStack(alignment: .leading, spacing: 16) {
                             verseChip
 
-                            AdaptiveGlassCard(
-                                tint: themeTint,
-                                cornerRadius: 26,
-                                fallbackFill: cardFill,
-                                fallbackStroke: cardStroke
-                            ) {
+                            NativeGlassSectionCard(cornerRadius: 26, tint: palette.sectionTint, elevated: true) {
                                 Text(text)
                                     .font(.body)
                                     .lineSpacing(6)
@@ -52,6 +48,7 @@ struct TranslationView: View {
             .navigationTitle("Translation")
             .navigationBarTitleDisplayMode(.inline)
             .preferredColorScheme(theme.colorScheme)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Close") { dismiss() }
@@ -72,14 +69,14 @@ struct TranslationView: View {
         Text("\(surah):\(ayah)")
             .font(.caption.weight(.semibold))
             .foregroundStyle(theme.secondaryTextColor)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .adaptiveGlass(
-                in: Capsule(),
-                tint: themeTint,
-                fallbackFill: cardFill,
-                fallbackStroke: cardStroke
-            )
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .adaptiveGlass(
+            in: Capsule(),
+            tint: palette.chromeTint,
+            fallbackFill: palette.elevatedFill,
+            fallbackStroke: palette.stroke
+        )
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 
@@ -109,47 +106,18 @@ struct TranslationView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .adaptiveGlass(
             in: RoundedRectangle(cornerRadius: 28, style: .continuous),
-            tint: themeTint,
-            fallbackFill: cardFill,
-            fallbackStroke: cardStroke
+            tint: palette.sectionTint,
+            fallbackFill: palette.cardFill,
+            fallbackStroke: palette.stroke
         )
         .padding(20)
     }
 
-    private var themeTint: Color? {
-        switch theme {
-        case .light:
-            return .white.opacity(0.08)
-        case .dark:
-            return .gray.opacity(0.12)
-        case .sepia:
-            return .brown.opacity(0.16)
-        case .amoled:
-            return .white.opacity(0.05)
-        }
-    }
-
     private var cardFill: AnyShapeStyle {
-        switch theme {
-        case .amoled:
-            return AnyShapeStyle(Color.white.opacity(0.05))
-        case .sepia:
-            return AnyShapeStyle(theme.pageBackground.opacity(0.94))
-        default:
-            return AnyShapeStyle(.thinMaterial)
-        }
+        palette.cardFill
     }
 
     private var cardStroke: Color {
-        switch theme {
-        case .light:
-            return .black.opacity(0.06)
-        case .dark:
-            return .white.opacity(0.08)
-        case .sepia:
-            return Color(red: 0.55, green: 0.45, blue: 0.33).opacity(0.18)
-        case .amoled:
-            return .white.opacity(0.05)
-        }
+        palette.stroke
     }
 }

@@ -1,5 +1,24 @@
 import SwiftUI
 
+struct AyahDeepLink: Equatable {
+    let surah: Int
+    let ayah: Int
+
+    init?(url: URL) {
+        guard url.scheme == "furqan",
+              url.host == "ayah",
+              let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let surahValue = components.queryItems?.first(where: { $0.name == "surah" })?.value,
+              let ayahValue = components.queryItems?.first(where: { $0.name == "ayah" })?.value,
+              let surah = Int(surahValue),
+              let ayah = Int(ayahValue)
+        else { return nil }
+
+        self.surah = surah
+        self.ayah = ayah
+    }
+}
+
 @main
 struct FurqanApp: App {
     @State private var dataService = QuranDataService.shared
@@ -7,6 +26,7 @@ struct FurqanApp: App {
     @State private var minTimePassed = false
     @State private var showOnboarding = !UserDefaults.standard.bool(forKey: "hasSeenOnboarding")
     @StateObject private var themeManager = ThemeManager.shared
+    @State private var pendingDeepLink: AyahDeepLink?
 
     init() {
         QuranFontManager.shared.registerStaticFonts()
@@ -26,7 +46,7 @@ struct FurqanApp: App {
                     }
                     .transition(.opacity)
                 } else {
-                    MushafPagerView(pages: dataService.pages, surahs: dataService.surahs)
+                    MushafPagerView(pages: dataService.pages, surahs: dataService.surahs, pendingDeepLink: $pendingDeepLink)
                         .transition(.opacity)
                 }
             }
@@ -36,6 +56,11 @@ struct FurqanApp: App {
             .animation(.easeOut(duration: 0.4), value: isLoading)
             .animation(.easeOut(duration: 0.4), value: minTimePassed)
             .animation(.easeOut(duration: 0.5), value: showOnboarding)
+            .onOpenURL { url in
+                if let deepLink = AyahDeepLink(url: url) {
+                    pendingDeepLink = deepLink
+                }
+            }
             .task {
                 // Start minimum 2s timer and data loading in parallel
                 async let timer: () = Task.sleep(nanoseconds: 2_000_000_000)

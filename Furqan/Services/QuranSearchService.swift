@@ -81,6 +81,52 @@ final class QuranSearchService {
         return results
     }
 
+    func pageNumber(forSurah surah: Int, ayah: Int) -> Int? {
+        guard let db = db else { return nil }
+
+        let sql = """
+            SELECT v.first_word_id
+            FROM verses v
+            WHERE v.surah = ? AND v.ayah = ?
+            LIMIT 1
+            """
+
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { return nil }
+        defer { sqlite3_finalize(stmt) }
+
+        sqlite3_bind_int(stmt, 1, Int32(surah))
+        sqlite3_bind_int(stmt, 2, Int32(ayah))
+
+        guard sqlite3_step(stmt) == SQLITE_ROW else { return nil }
+        let firstWordId = Int(sqlite3_column_int(stmt, 0))
+        return pageNumber(forWordId: firstWordId)
+    }
+
+    func verseText(surah: Int, ayah: Int) -> String? {
+        guard let db = db else { return nil }
+
+        let sql = """
+            SELECT v.verse_text
+            FROM verses v
+            WHERE v.surah = ? AND v.ayah = ?
+            LIMIT 1
+            """
+
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { return nil }
+        defer { sqlite3_finalize(stmt) }
+
+        sqlite3_bind_int(stmt, 1, Int32(surah))
+        sqlite3_bind_int(stmt, 2, Int32(ayah))
+
+        guard sqlite3_step(stmt) == SQLITE_ROW,
+              let text = sqlite3_column_text(stmt, 0)
+        else { return nil }
+
+        return String(cString: text)
+    }
+
     /// Look up a specific verse by surah:ayah reference (e.g. "23:65")
     func lookupByReference(_ query: String) -> [SearchResult]? {
         let pattern = query.trimmingCharacters(in: .whitespacesAndNewlines)

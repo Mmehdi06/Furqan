@@ -9,7 +9,7 @@ struct DailyAyahEntry: TimelineEntry {
     let surah: Int
     let ayah: Int
     let surahName: String
-    let translationText: String
+    let arabicText: String
     let reference: String
 }
 
@@ -22,7 +22,7 @@ struct DailyAyahProvider: TimelineProvider {
             surah: 1,
             ayah: 1,
             surahName: "Al-Fatihah",
-            translationText: "In the Name of Allah, the Most Gracious, the Most Merciful.",
+            arabicText: "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",
             reference: "1:1"
         )
     }
@@ -119,8 +119,7 @@ struct DailyAyahProvider: TimelineProvider {
         let index = (dayOfYear - 1) % curated.count
         let ayahRef = curated[index]
 
-        // Load translation from the bundled DB
-        let translation = loadTranslation(surah: ayahRef.surah, ayah: ayahRef.ayah)
+        let arabic = loadArabicText(surah: ayahRef.surah, ayah: ayahRef.ayah)
         let surahName = loadSurahName(surah: ayahRef.surah)
 
         return DailyAyahEntry(
@@ -128,25 +127,25 @@ struct DailyAyahProvider: TimelineProvider {
             surah: ayahRef.surah,
             ayah: ayahRef.ayah,
             surahName: surahName,
-            translationText: translation,
+            arabicText: arabic,
             reference: "\(ayahRef.surah):\(ayahRef.ayah)"
         )
     }
 
-    private func loadTranslation(surah: Int, ayah: Int) -> String {
-        guard let path = Bundle.main.path(forResource: "translation-en", ofType: "db") else {
-            return "All praise is due to Allah, Lord of the worlds."
+    private func loadArabicText(surah: Int, ayah: Int) -> String {
+        guard let path = Bundle.main.path(forResource: "quranSearchText", ofType: "db") else {
+            return "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ"
         }
         var db: OpaquePointer?
         guard sqlite3_open_v2(path, &db, SQLITE_OPEN_READONLY, nil) == SQLITE_OK else {
-            return "All praise is due to Allah, Lord of the worlds."
+            return "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ"
         }
         defer { if let db { sqlite3_close(db) } }
 
-        let query = "SELECT text FROM verses WHERE sura = ? AND ayah = ? LIMIT 1;"
+        let query = "SELECT verse_text FROM verses WHERE surah = ? AND ayah = ? LIMIT 1;"
         var stmt: OpaquePointer?
         guard sqlite3_prepare_v2(db, query, -1, &stmt, nil) == SQLITE_OK else {
-            return "All praise is due to Allah, Lord of the worlds."
+            return "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ"
         }
         defer { sqlite3_finalize(stmt) }
 
@@ -154,13 +153,9 @@ struct DailyAyahProvider: TimelineProvider {
         sqlite3_bind_int(stmt, 2, Int32(ayah))
 
         if sqlite3_step(stmt) == SQLITE_ROW, let text = sqlite3_column_text(stmt, 0) {
-            var result = String(cString: text)
-            // Clean up footnotes
-            result = result.replacingOccurrences(of: "\\[\\[.*?\\]\\]", with: "", options: .regularExpression)
-            result = result.replacingOccurrences(of: "<sup.*?</sup>", with: "", options: .regularExpression)
-            return result.trimmingCharacters(in: .whitespacesAndNewlines)
+            return String(cString: text).trimmingCharacters(in: .whitespacesAndNewlines)
         }
-        return "All praise is due to Allah, Lord of the worlds."
+        return "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ"
     }
 
     private func loadSurahName(surah: Int) -> String {
@@ -195,13 +190,55 @@ struct DailyAyahWidgetEntryView: View {
     @Environment(\.widgetFamily) var family
 
     var body: some View {
-        switch family {
-        case .systemSmall:
-            smallView
-        case .systemMedium:
-            mediumView
-        default:
-            mediumView
+        Group {
+            switch family {
+            case .accessoryInline:
+                inlineView
+            case .accessoryRectangular:
+                rectangularView
+            case .systemSmall:
+                smallView
+            case .systemMedium:
+                mediumView
+            default:
+                mediumView
+            }
+        }
+        .widgetURL(ayahURL)
+    }
+
+    private var ayahURL: URL? {
+        var components = URLComponents()
+        components.scheme = "furqan"
+        components.host = "ayah"
+        components.queryItems = [
+            URLQueryItem(name: "surah", value: String(entry.surah)),
+            URLQueryItem(name: "ayah", value: String(entry.ayah))
+        ]
+        return components.url
+    }
+
+    private var inlineView: some View {
+        Text("\(entry.surahName) \(entry.reference)")
+            .font(.caption.weight(.semibold))
+    }
+
+    private var rectangularView: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Ayah du jour")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            Text(entry.arabicText)
+                .font(.system(size: 18, weight: .semibold, design: .default))
+                .lineLimit(5)
+                .minimumScaleFactor(0.7)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Text("\(entry.surahName) \(entry.reference)")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.green)
         }
     }
 
@@ -216,10 +253,12 @@ struct DailyAyahWidgetEntryView: View {
                     .foregroundStyle(.secondary)
             }
 
-            Text(entry.translationText)
-                .font(.system(size: 12, weight: .medium, design: .serif))
-                .lineLimit(5)
-                .minimumScaleFactor(0.8)
+            Text(entry.arabicText)
+                .font(.system(size: 20, weight: .semibold, design: .default))
+                .lineLimit(7)
+                .minimumScaleFactor(0.75)
+                .multilineTextAlignment(.trailing)
+                .frame(maxWidth: .infinity, alignment: .trailing)
 
             Spacer(minLength: 0)
 
@@ -245,15 +284,17 @@ struct DailyAyahWidgetEntryView: View {
                     .foregroundStyle(.green)
             }
 
-            Text(entry.translationText)
-                .font(.system(size: 14, weight: .medium, design: .serif))
-                .lineLimit(4)
-                .minimumScaleFactor(0.85)
+            Text(entry.arabicText)
+                .font(.system(size: 22, weight: .semibold, design: .default))
+                .lineLimit(6)
+                .minimumScaleFactor(0.7)
+                .multilineTextAlignment(.trailing)
+                .frame(maxWidth: .infinity, alignment: .trailing)
 
             Spacer(minLength: 0)
 
             HStack {
-                Text("Surah \(entry.surahName), Ayah \(entry.ayah)")
+                Text("\(entry.surahName) \(entry.reference)")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
                 Spacer()
@@ -282,6 +323,6 @@ struct DailyAyahWidget: Widget {
         }
         .configurationDisplayName("Daily Ayah")
         .description("A new ayah every day to reflect upon.")
-        .supportedFamilies([.systemSmall, .systemMedium])
+        .supportedFamilies([.systemSmall, .systemMedium, .accessoryInline, .accessoryRectangular])
     }
 }

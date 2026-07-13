@@ -8,14 +8,22 @@ struct AyahHighlight: Equatable {
 struct MushafPagerView: View {
     let pages: [QuranPage]
     let surahs: [SurahInfo]
+    private let pendingDeepLink: Binding<AyahDeepLink?>?
 
     @State private var currentPage: Int
     @State private var showSurahIndex = false
     @State private var showBookmarks = false
     @State private var showSearch = false
+    @State private var showReadingPlan = false
+    @State private var showReadingPlanPrompt = false
     @State private var showBookmarkToast = false
     @State private var toastMessage = ""
     @State private var highlightedAyah: AyahHighlight?
+    @State private var noteTarget: SavedAyah?
+    @State private var viewedPagesForPlanPrompt: Set<Int> = []
+    @State private var hasShownReadingPlanPromptThisSession = false
+    @State private var didLeaveActiveScene = false
+    @State private var planCompletionWorkItem: DispatchWorkItem?
 
     // Tafsir, Translation & Surah Info sheets
     @State private var tafsirTarget: (surah: Int, ayah: Int)?
@@ -26,8 +34,10 @@ struct MushafPagerView: View {
     @StateObject private var bookmarkManager = BookmarkManager.shared
     @StateObject private var translationManager = TranslationManager.shared
     @StateObject private var statsManager = ReadingStatsManager.shared
+    @StateObject private var planManager = ReadingPlanManager.shared
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.readingTheme) private var theme
+    @Environment(\.scenePhase) private var scenePhase
 
     private let lastPageKey = "quran_last_page"
 
@@ -35,9 +45,10 @@ struct MushafPagerView: View {
         surahs.last(where: { $0.startPage <= currentPage })?.nameSimple ?? ""
     }
 
-    init(pages: [QuranPage], surahs: [SurahInfo]) {
+    init(pages: [QuranPage], surahs: [SurahInfo], pendingDeepLink: Binding<AyahDeepLink?>? = nil) {
         self.pages = pages
         self.surahs = surahs
+        self.pendingDeepLink = pendingDeepLink
         let savedPage = UserDefaults.standard.integer(forKey: "quran_last_page")
         _currentPage = State(initialValue: savedPage > 0 ? savedPage : 1)
     }
@@ -66,13 +77,22 @@ struct MushafPagerView: View {
             .onChange(of: currentPage) { _, newPage in
                 UserDefaults.standard.set(newPage, forKey: lastPageKey)
                 statsManager.recordPageView(newPage)
+                recordViewedPageForPlanPrompt(newPage)
+                schedulePlanCompletion(for: newPage)
             }
             .onAppear {
                 statsManager.startSession()
                 statsManager.recordPageView(currentPage)
+                recordViewedPageForPlanPrompt(currentPage)
+                schedulePlanCompletion(for: currentPage)
+                applyPendingDeepLinkIfNeeded()
+            }
+            .onChange(of: pendingDeepLink?.wrappedValue) { _, _ in
+                applyPendingDeepLinkIfNeeded()
             }
             .onDisappear {
                 statsManager.endSession()
+                planCompletionWorkItem?.cancel()
             }
 
             // Toolbar overlay
@@ -126,6 +146,28 @@ struct MushafPagerView: View {
             SettingsView(themeManager: themeManager, translationManager: translationManager)
                 .presentationDetents([.large])
         }
+        .sheet(isPresented: $showReadingPlan) {
+            ReadingPlanView(planManager: planManager, initialStartPage: currentPage)
+                .presentationDetents([.large])
+        }
+        .sheet(isPresented: $showReadingPlanPrompt) {
+            ReadingPlanPromptView {
+                planManager.dismissPrompt()
+                showReadingPlanPrompt = false
+                showReadingPlan = true
+            } onDismiss: {
+                planManager.dismissPrompt()
+                showReadingPlanPrompt = false
+            }
+            .presentationDetents([.height(200)])
+        }
+        .sheet(item: $noteTarget) { savedAyah in
+            SavedAyahNoteEditor(savedAyah: savedAyah, bookmarkManager: bookmarkManager)
+                .presentationDetents([.medium, .large])
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            handleScenePhaseChange(newPhase)
+        }
         .sheet(item: Binding(
             get: { tafsirTarget.map { TafsirTarget(surah: $0.surah, ayah: $0.ayah) } },
             set: { tafsirTarget = $0.map { ($0.surah, $0.ayah) } }
@@ -162,18 +204,65 @@ struct MushafPagerView: View {
         case .showSurahInfo(let surah):
             surahInfoTarget = surah
 
-        case .toggleBookmark(let surah, let ayah, let page):
+        case .saveAyah(let surah, let ayah, let page):
             let surahName = QuranDataService.shared.surahName(forPage: page)
-            bookmarkManager.toggleAyahBookmark(page: page, surahName: surahName, surah: surah, ayah: ayah)
-            let isNowBookmarked = bookmarkManager.isAyahBookmarked(surah: surah, ayah: ayah)
-            toastMessage = isNowBookmarked
-                ? "Bookmarked \(surah):\(ayah)"
-                : "Removed bookmark"
-            withAnimation { showBookmarkToast = true }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                withAnimation { showBookmarkToast = false }
-            }
+            bookmarkManager.saveAyah(page: page, surahName: surahName, surah: surah, ayah: ayah)
+            showToast("Saved \(surah):\(ayah)")
+
+        case .removeSavedAyah(let surah, let ayah):
+            bookmarkManager.removeSavedAyah(surah: surah, ayah: ayah)
+            showToast("Removed saved ayah")
+
+        case .editNote(let surah, let ayah, let page):
+            let surahName = QuranDataService.shared.surahName(forPage: page)
+            noteTarget = bookmarkManager.saveAyah(page: page, surahName: surahName, surah: surah, ayah: ayah)
         }
+    }
+
+    private func showToast(_ message: String) {
+        toastMessage = message
+        withAnimation { showBookmarkToast = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            withAnimation { showBookmarkToast = false }
+        }
+    }
+
+    private func recordViewedPageForPlanPrompt(_ page: Int) {
+        guard !planManager.shouldSuppressPrompt, !hasShownReadingPlanPromptThisSession else { return }
+        viewedPagesForPlanPrompt.insert(page)
+        if viewedPagesForPlanPrompt.count >= 3 {
+            hasShownReadingPlanPromptThisSession = true
+            showReadingPlanPrompt = true
+        }
+    }
+
+    private func handleScenePhaseChange(_ phase: ScenePhase) {
+        switch phase {
+        case .active:
+            guard didLeaveActiveScene else { return }
+            didLeaveActiveScene = false
+            hasShownReadingPlanPromptThisSession = false
+            viewedPagesForPlanPrompt = []
+            recordViewedPageForPlanPrompt(currentPage)
+
+        case .inactive, .background:
+            didLeaveActiveScene = true
+
+        @unknown default:
+            break
+        }
+    }
+
+    private func schedulePlanCompletion(for page: Int) {
+        planCompletionWorkItem?.cancel()
+        guard planManager.activePlan?.contains(page: page) == true else { return }
+
+        let workItem = DispatchWorkItem { [page] in
+            guard currentPage == page else { return }
+            planManager.markPageCompleted(page)
+        }
+        planCompletionWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3, execute: workItem)
     }
 
     // MARK: - Ayah Highlight
@@ -183,6 +272,16 @@ struct MushafPagerView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
             highlightedAyah = nil
         }
+    }
+
+    private func applyPendingDeepLinkIfNeeded() {
+        guard let pendingDeepLink else { return }
+        guard let target = pendingDeepLink.wrappedValue else { return }
+        guard let page = QuranSearchService.shared.pageNumber(forSurah: target.surah, ayah: target.ayah) else { return }
+
+        currentPage = page
+        highlightAyah(surah: target.surah, ayah: target.ayah)
+        pendingDeepLink.wrappedValue = nil
     }
 
     private var bottomToolbar: some View {
@@ -218,8 +317,7 @@ struct MushafPagerView: View {
                 }
 
                 toolbarButton(
-                    systemName: bookmarkManager.isBookmarked(page: currentPage) ? "bookmark.fill" : "bookmark",
-                    tint: bookmarkManager.isBookmarked(page: currentPage) ? .orange : nil,
+                    systemName: "bookmark",
                     accessibilityIdentifier: "bookmarkButton"
                 ) {
                     showBookmarks = true
@@ -230,14 +328,38 @@ struct MushafPagerView: View {
     }
 
     private var pageInfoChip: some View {
-        HStack(spacing: 6) {
-            Text(currentSurahName)
-                .font(.caption.weight(.medium))
-                .foregroundStyle(theme.secondaryTextColor)
-            Text("\(currentPage)")
-                .font(.caption.weight(.semibold))
-                .monospacedDigit()
-                .foregroundStyle(theme.textColor)
+        Button {
+            if planManager.activePlan != nil {
+                showReadingPlan = true
+            }
+        } label: {
+            HStack(spacing: 8) {
+                VStack(alignment: .center, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text(currentSurahName)
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(theme.secondaryTextColor)
+                        Text("\(currentPage)")
+                            .font(.caption.weight(.semibold))
+                            .monospacedDigit()
+                            .foregroundStyle(theme.textColor)
+                    }
+
+                    if let plan = planManager.activePlan {
+                        ProgressView(value: plan.completionPercentage, total: 100)
+                            .progressViewStyle(.linear)
+                            .tint(.green)
+                            .frame(width: 74)
+                            .scaleEffect(y: 0.55)
+                    }
+                }
+
+                if planManager.activePlan != nil {
+                    Image(systemName: "chevron.up")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(theme.tertiaryTextColor)
+                }
+            }
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 16)
@@ -247,7 +369,8 @@ struct MushafPagerView: View {
             fallbackFill: toolbarChipFill,
             fallbackStroke: toolbarStroke
         )
-        .allowsHitTesting(false)
+        .buttonStyle(.plain)
+        .disabled(planManager.activePlan == nil)
         .accessibilityIdentifier("pageInfo")
     }
 

@@ -5,6 +5,7 @@ struct ReadingStatsView: View {
     @Environment(\.readingTheme) private var theme
     @Environment(\.dismiss) private var dismiss
     @State private var showResetConfirmation = false
+    private var palette: NativeGlassPalette { theme.nativeGlassPalette }
 
     var body: some View {
         NavigationStack {
@@ -93,6 +94,7 @@ struct ReadingStatsView: View {
             .navigationTitle("Reading Stats")
             .navigationBarTitleDisplayMode(.inline)
             .preferredColorScheme(theme.colorScheme)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Close") { dismiss() }
@@ -104,12 +106,7 @@ struct ReadingStatsView: View {
     // MARK: - Stat Card
 
     private func statCard(icon: String, iconColor: Color, value: String, label: String) -> some View {
-        AdaptiveGlassCard(
-            tint: sectionTint,
-            cornerRadius: 24,
-            fallbackFill: AnyShapeStyle(.thinMaterial),
-            fallbackStroke: strokeColor
-        ) {
+        NativeGlassSectionCard(cornerRadius: 24, tint: palette.sectionTint, elevated: true) {
             VStack(alignment: .leading, spacing: 12) {
                 Image(systemName: icon)
                     .font(.system(size: 22, weight: .semibold))
@@ -133,12 +130,7 @@ struct ReadingStatsView: View {
     // MARK: - Progress Section
 
     private var progressSection: some View {
-        AdaptiveGlassCard(
-            tint: sectionTint,
-            cornerRadius: 28,
-            fallbackFill: AnyShapeStyle(.thinMaterial),
-            fallbackStroke: strokeColor
-        ) {
+        NativeGlassSectionCard(cornerRadius: 28, tint: palette.sectionTint, elevated: true) {
             VStack(spacing: 16) {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
@@ -204,12 +196,7 @@ struct ReadingStatsView: View {
         let data = statsManager.weeklyData()
         let maxPages = max(data.map(\.pages).max() ?? 1, 1)
 
-        return AdaptiveGlassCard(
-            tint: sectionTint,
-            cornerRadius: 28,
-            fallbackFill: AnyShapeStyle(.thinMaterial),
-            fallbackStroke: strokeColor
-        ) {
+        return NativeGlassSectionCard(cornerRadius: 28, tint: palette.sectionTint, elevated: true) {
             VStack(alignment: .leading, spacing: 16) {
                 Label("This Week", systemImage: "calendar")
                     .font(.headline)
@@ -262,12 +249,7 @@ struct ReadingStatsView: View {
         let columns = stride(from: 0, to: data.count, by: 7).map {
             Array(data[$0..<min($0 + 7, data.count)])
         }
-        return AdaptiveGlassCard(
-            tint: sectionTint,
-            cornerRadius: 28,
-            fallbackFill: AnyShapeStyle(.thinMaterial),
-            fallbackStroke: strokeColor
-        ) {
+        return NativeGlassSectionCard(cornerRadius: 28, tint: palette.sectionTint, elevated: true) {
             VStack(alignment: .leading, spacing: 14) {
                 Label("Last 90 Days", systemImage: "square.grid.3x3.fill")
                     .font(.headline)
@@ -316,12 +298,7 @@ struct ReadingStatsView: View {
     // MARK: - Today Detail
 
     private var todayDetailSection: some View {
-        AdaptiveGlassCard(
-            tint: sectionTint,
-            cornerRadius: 28,
-            fallbackFill: AnyShapeStyle(.thinMaterial),
-            fallbackStroke: strokeColor
-        ) {
+        NativeGlassSectionCard(cornerRadius: 28, tint: palette.sectionTint, elevated: true) {
             VStack(alignment: .leading, spacing: 12) {
                 Label("Today's Reading", systemImage: "book.fill")
                     .font(.headline)
@@ -374,14 +351,8 @@ struct ReadingStatsView: View {
             .foregroundStyle(.red)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
-            .adaptiveGlass(
-                in: RoundedRectangle(cornerRadius: 16, style: .continuous),
-                tint: nil,
-                fallbackFill: AnyShapeStyle(theme.pageBackground.opacity(0.88)),
-                fallbackStroke: strokeColor
-            )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(NativeGlassRoundedButtonStyle(cornerRadius: 16, tint: nil, elevated: true))
         .alert("Reset Reading Stats?", isPresented: $showResetConfirmation) {
             Button("Cancel", role: .cancel) { }
             Button("Reset", role: .destructive) {
@@ -395,18 +366,258 @@ struct ReadingStatsView: View {
     // MARK: - Helpers
 
     private var sectionTint: Color? {
-        switch theme {
-        case .sepia: return Color.brown.opacity(0.18)
-        default: return nil
-        }
+        palette.sectionTint
     }
 
     private var strokeColor: Color {
-        switch theme {
-        case .light:  return .black.opacity(0.06)
-        case .dark:   return .white.opacity(0.06)
-        case .sepia:  return Color(red: 0.55, green: 0.46, blue: 0.35).opacity(0.18)
-        case .amoled: return .white.opacity(0.04)
+        palette.stroke
+    }
+}
+
+struct ReadingPlanView: View {
+    @ObservedObject var planManager: ReadingPlanManager
+    let initialStartPage: Int
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.readingTheme) private var theme
+    @State private var planKind: ReadingPlanKind = .khatm
+    @State private var startPage: Int
+    @State private var endPage = 604
+    @State private var days = 30
+    @State private var showResetConfirmation = false
+
+    private var palette: NativeGlassPalette { theme.nativeGlassPalette }
+
+    init(planManager: ReadingPlanManager, initialStartPage: Int) {
+        self.planManager = planManager
+        self.initialStartPage = initialStartPage
+        _startPage = State(initialValue: min(max(initialStartPage, 1), 604))
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 20) {
+                    if let plan = planManager.activePlan {
+                        activePlanSection(plan)
+                    } else {
+                        createPlanSection
+                    }
+                }
+                .padding(.top, 16)
+                .padding(.bottom, 28)
+                .padding(.horizontal, 24)
+            }
+            .background(theme.pageBackground.ignoresSafeArea())
+            .navigationTitle("Reading Plan")
+            .navigationBarTitleDisplayMode(.inline)
+            .preferredColorScheme(theme.colorScheme)
+            .toolbarBackground(.hidden, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Close") { dismiss() }
+                }
+            }
+            .alert("Reset Reading Plan?", isPresented: $showResetConfirmation) {
+                Button("Cancel", role: .cancel) { }
+                Button("Reset", role: .destructive) {
+                    planManager.resetActivePlan()
+                }
+            } message: {
+                Text("This removes the active plan and its progress.")
+            }
         }
+    }
+
+    private func activePlanSection(_ plan: ReadingPlan) -> some View {
+        VStack(spacing: 20) {
+            NativeGlassSectionCard(cornerRadius: 30, tint: palette.sectionTint, elevated: true) {
+                VStack(alignment: .leading, spacing: 18) {
+                    HStack(alignment: .top) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Label(plan.title, systemImage: plan.isComplete ? "checkmark.seal.fill" : "target")
+                                .font(.headline)
+                                .foregroundStyle(theme.textColor)
+                            Text("Pages \(plan.startPage)-\(plan.endPage)")
+                                .font(.subheadline)
+                                .foregroundStyle(theme.secondaryTextColor)
+                        }
+                        Spacer()
+                        Text(String(format: "%.0f%%", plan.completionPercentage))
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .foregroundStyle(theme.textColor)
+                            .monospacedDigit()
+                    }
+
+                    ProgressView(value: plan.completionPercentage, total: 100)
+                        .tint(.green)
+
+                    HStack(spacing: 14) {
+                        planMetric(value: "\(plan.completedCount)", label: "Completed")
+                        planMetric(value: "\(plan.remainingPages)", label: "Remaining")
+                        planMetric(value: "\(plan.dailyTargetPages())", label: "Today")
+                    }
+                }
+                .padding(20)
+            }
+
+            NativeGlassSectionCard(cornerRadius: 26, tint: palette.sectionTint, elevated: true) {
+                VStack(alignment: .leading, spacing: 12) {
+                    Label("Daily Target", systemImage: "calendar")
+                        .font(.headline)
+                        .foregroundStyle(theme.textColor)
+                    Text("Read \(plan.dailyTargetPages()) page\(plan.dailyTargetPages() == 1 ? "" : "s") per day to finish in \(plan.daysRemaining()) day\(plan.daysRemaining() == 1 ? "" : "s").")
+                        .font(.subheadline)
+                        .foregroundStyle(theme.secondaryTextColor)
+                }
+                .padding(20)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            Button(role: .destructive) {
+                showResetConfirmation = true
+            } label: {
+                Label("Reset Plan", systemImage: "arrow.counterclockwise")
+                    .font(.subheadline.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+            }
+            .buttonStyle(NativeGlassRoundedButtonStyle(cornerRadius: 16, tint: nil, elevated: true))
+        }
+    }
+
+    private var createPlanSection: some View {
+        NativeGlassSectionCard(cornerRadius: 30, tint: palette.sectionTint, elevated: true) {
+            VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Create a reading plan")
+                        .font(.headline)
+                        .foregroundStyle(theme.textColor)
+                    Text("Set a daily page goal and track progress privately on this device.")
+                        .font(.subheadline)
+                        .foregroundStyle(theme.secondaryTextColor)
+                }
+
+                Picker("Plan Type", selection: $planKind) {
+                    Text("Full Mushaf").tag(ReadingPlanKind.khatm)
+                    Text("Custom Range").tag(ReadingPlanKind.customRange)
+                }
+                .pickerStyle(.segmented)
+
+                if planKind == .customRange {
+                    Stepper("Start page \(startPage)", value: $startPage, in: 1...604)
+                        .foregroundStyle(theme.textColor)
+                    Stepper("End page \(endPage)", value: $endPage, in: 1...604)
+                        .foregroundStyle(theme.textColor)
+                }
+
+                Stepper("Finish in \(days) days", value: $days, in: 1...365)
+                    .foregroundStyle(theme.textColor)
+
+                Button {
+                    if planKind == .khatm {
+                        planManager.createKhatmPlan(days: days)
+                    } else {
+                        planManager.createCustomPlan(startPage: startPage, endPage: endPage, days: days)
+                    }
+                } label: {
+                    Label("Create Plan", systemImage: "target")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                }
+                .buttonStyle(NativeGlassRoundedButtonStyle(cornerRadius: 18, tint: .green.opacity(0.16), elevated: true))
+            }
+            .padding(20)
+        }
+    }
+
+    private func planMetric(value: String, label: String) -> some View {
+        VStack(spacing: 4) {
+            Text(value)
+                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .foregroundStyle(theme.textColor)
+                .monospacedDigit()
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(theme.secondaryTextColor)
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+struct ReadingPlanPromptView: View {
+    let onCreate: () -> Void
+    let onDismiss: () -> Void
+    @Environment(\.readingTheme) private var theme
+    private var palette: NativeGlassPalette { theme.nativeGlassPalette }
+
+    var body: some View {
+        VStack(spacing: 18) {
+            NativeGlassSectionCard(cornerRadius: 26, tint: palette.sectionTint, elevated: true) {
+                VStack(alignment: .leading, spacing: 18) {
+                    HStack(alignment: .top, spacing: 14) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.green.opacity(0.14))
+                                .frame(width: 46, height: 46)
+                            Image(systemName: "target")
+                                .font(.system(size: 21, weight: .semibold))
+                                .foregroundStyle(.green)
+                        }
+
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text("Create a reading plan")
+                                .font(.headline)
+                                .foregroundStyle(theme.textColor)
+                            Text("Set a daily page goal and track your progress privately on this device.")
+                                .font(.subheadline)
+                                .foregroundStyle(theme.secondaryTextColor)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+
+                    HStack(spacing: 12) {
+                        promptButton(
+                            title: "Not Now",
+                            systemImage: "xmark",
+                            tint: nil,
+                            action: onDismiss
+                        )
+
+                        promptButton(
+                            title: "Create Plan",
+                            systemImage: "target",
+                            tint: .green.opacity(0.18),
+                            action: onCreate
+                        )
+                    }
+                }
+                .padding(18)
+            }
+        }
+        .padding(.horizontal, 22)
+        .padding(.top, 20)
+        .padding(.bottom, 12)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(theme.pageBackground.ignoresSafeArea())
+        .preferredColorScheme(theme.colorScheme)
+    }
+
+    private func promptButton(
+        title: String,
+        systemImage: String,
+        tint: Color?,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(theme.textColor)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+                .frame(maxWidth: .infinity, minHeight: 48)
+                .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        }
+        .buttonStyle(NativeGlassRoundedButtonStyle(cornerRadius: 16, tint: tint, elevated: true))
     }
 }

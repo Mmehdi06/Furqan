@@ -24,7 +24,7 @@ struct OnboardingView: View {
                     .tag(4)
                 ThemesPage(isActive: currentPage == 5)
                     .tag(5)
-                FeaturesPage(isActive: currentPage == 6)
+                ReadingPlanOnboardingPage(isActive: currentPage == 6)
                     .tag(6)
                 StartPage(isActive: currentPage == 7, onStart: onComplete)
                     .tag(7)
@@ -271,7 +271,7 @@ private struct ContextMenuPage: View {
         ("character.book.closed", "Translation (25:63)", false),
         ("book.pages", "Tafsir (25:63)", false),
         ("info.circle", "Surah Info", false),
-        ("bookmark", "Bookmark Ayah", true),
+        ("bookmark", "Save Ayah", true),
     ]
 
     var body: some View {
@@ -538,14 +538,14 @@ private struct BookmarksPage: View {
             .opacity(visible ? 1 : 0)
             .animation(.easeOut(duration: 0.5), value: visible)
 
-            Text("Save your place")
+            Text("Save meaningful ayahs")
                 .font(.system(size: 22, weight: .medium, design: .serif))
                 .foregroundStyle(.white)
                 .padding(.top, 16)
                 .opacity(visible ? 1 : 0)
                 .animation(.easeOut(duration: 0.5).delay(0.1), value: visible)
 
-            Text("bookmark any ayah for quick access")
+            Text("add private notes for reflection")
                 .font(.system(size: 14, weight: .light, design: .serif))
                 .foregroundStyle(.white.opacity(0.5))
                 .padding(.top, 6)
@@ -555,7 +555,7 @@ private struct BookmarksPage: View {
             // Mock bookmarks list
             VStack(spacing: 0) {
                 HStack {
-                    Text("AYAH BOOKMARKS")
+                    Text("SAVED AYAHS")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(.secondary)
                     Spacer()
@@ -620,81 +620,104 @@ private struct BookmarksPage: View {
     }
 }
 
-// MARK: - Page 6: Features Recap
+// MARK: - Page 6: Reading Plan
 
-private struct FeaturesPage: View {
+private struct ReadingPlanOnboardingPage: View {
     let isActive: Bool
-    @State private var cardsVisible = false
-
-    private let features: [(icon: String, title: String, desc: String, color: Color)] = [
-        ("magnifyingglass", "Search", "Find any verse instantly", Color(red: 0.3, green: 0.6, blue: 1.0)),
-        ("bookmark.fill", "Bookmarks", "Save your favorite ayahs", Color(red: 1.0, green: 0.6, blue: 0.2)),
-        ("book.pages", "Tafsir", "Ibn Kathir commentary", Color(red: 0.5, green: 0.8, blue: 0.4)),
-        ("character.book.closed", "Translation", "French translation", Color(red: 0.8, green: 0.5, blue: 1.0)),
-        ("info.circle", "Surah Info", "Context and background", Color(red: 1.0, green: 0.4, blue: 0.5)),
-        ("moon.fill", "Themes", "Light, dark, sepia & AMOLED", Color(red: 0.85, green: 0.75, blue: 0.55)),
-    ]
+    @State private var visible = false
+    @State private var progress: CGFloat = 0.0
 
     var body: some View {
         VStack(spacing: 0) {
             Spacer()
 
-            Text("Everything you need")
+            Text("Build a reading habit")
                 .font(.system(size: 22, weight: .medium, design: .serif))
                 .foregroundStyle(.white)
-                .opacity(cardsVisible ? 1 : 0)
-                .animation(.easeOut(duration: 0.5), value: cardsVisible)
+                .opacity(visible ? 1 : 0)
+                .animation(.easeOut(duration: 0.5), value: visible)
 
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
-                ForEach(Array(features.enumerated()), id: \.offset) { index, feature in
-                    FeatureCard(icon: feature.icon, title: feature.title, desc: feature.desc, color: feature.color)
-                        .opacity(cardsVisible ? 1 : 0)
-                        .offset(y: cardsVisible ? 0 : 30)
-                        .scaleEffect(cardsVisible ? 1 : 0.8)
-                        .animation(
-                            .spring(response: 0.5, dampingFraction: 0.7).delay(Double(index) * 0.1),
-                            value: cardsVisible
-                        )
+            Text("private plans, daily targets, and steady progress")
+                .font(.system(size: 14, weight: .light, design: .serif))
+                .foregroundStyle(.white.opacity(0.5))
+                .padding(.top, 6)
+                .opacity(visible ? 1 : 0)
+                .animation(.easeOut(duration: 0.5).delay(0.15), value: visible)
+
+            VStack(alignment: .leading, spacing: 18) {
+                HStack {
+                    Label("Full Mushaf", systemImage: "target")
+                        .font(.system(size: 17, weight: .semibold))
+                    Spacer()
+                    Text("\(Int(progress * 100))%")
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .monospacedDigit()
+                }
+                .foregroundStyle(.black)
+
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 5)
+                            .fill(Color.black.opacity(0.08))
+                            .frame(height: 10)
+                        RoundedRectangle(cornerRadius: 5)
+                            .fill(LinearGradient(colors: [.green, .green.opacity(0.65)], startPoint: .leading, endPoint: .trailing))
+                            .frame(width: max(12, geo.size.width * progress), height: 10)
+                    }
+                }
+                .frame(height: 10)
+
+                HStack(spacing: 12) {
+                    onboardingMetric(icon: "book.pages.fill", value: "4", label: "Today")
+                    onboardingMetric(icon: "flame.fill", value: "7", label: "Streak")
+                    onboardingMetric(icon: "calendar", value: "23", label: "Days left")
+                }
+
+                HStack {
+                    Image(systemName: "square.grid.2x2.fill")
+                        .foregroundStyle(.green)
+                    Text("Widget shows target and progress")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(.secondary)
                 }
             }
-            .padding(.horizontal, 24)
+            .padding(20)
+            .background(Color.white, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .padding(.horizontal, 34)
             .padding(.top, 30)
+            .opacity(visible ? 1 : 0)
+            .offset(y: visible ? 0 : 24)
+            .animation(.spring(response: 0.55, dampingFraction: 0.82).delay(0.2), value: visible)
 
             Spacer()
             Spacer()
         }
         .onChange(of: isActive) { _, active in
-            if active { cardsVisible = true }
+            if active {
+                visible = true
+                withAnimation(.easeOut(duration: 1.1).delay(0.45)) {
+                    progress = 0.42
+                }
+            }
         }
     }
-}
 
-private struct FeatureCard: View {
-    let icon: String
-    let title: String
-    let desc: String
-    let color: Color
-
-    var body: some View {
-        VStack(spacing: 8) {
+    private func onboardingMetric(icon: String, value: String, label: String) -> some View {
+        VStack(spacing: 6) {
             Image(systemName: icon)
-                .font(.system(size: 24))
-                .foregroundStyle(color)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(.green)
 
-            Text(title)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(.white)
+            Text(value)
+                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .foregroundStyle(.black)
+                .monospacedDigit()
 
-            Text(desc)
+            Text(label)
                 .font(.system(size: 11))
-                .foregroundStyle(.white.opacity(0.5))
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
+                .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 16)
-        .padding(.horizontal, 8)
-        .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 14))
     }
 }
 

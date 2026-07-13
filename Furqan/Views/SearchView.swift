@@ -13,6 +13,7 @@ struct SearchView: View {
     @State private var searchHistory: [String] = SearchHistoryManager.load()
 
     @FocusState private var isFieldFocused: Bool
+    private var palette: NativeGlassPalette { theme.nativeGlassPalette }
 
     var body: some View {
         NavigationStack {
@@ -25,6 +26,7 @@ struct SearchView: View {
             .navigationTitle("Search")
             .navigationBarTitleDisplayMode(.inline)
             .preferredColorScheme(theme.colorScheme)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Close") { dismiss() }
@@ -78,9 +80,9 @@ struct SearchView: View {
             .padding(.vertical, 13)
             .adaptiveGlass(
                 in: RoundedRectangle(cornerRadius: 18, style: .continuous),
-                tint: searchChromeTint,
-                fallbackFill: searchFieldFill,
-                fallbackStroke: cardStroke
+                tint: palette.chromeTint,
+                fallbackFill: palette.elevatedFill,
+                fallbackStroke: palette.stroke
             )
         }
         .padding(.horizontal, 20)
@@ -121,7 +123,7 @@ struct SearchView: View {
                             } label: {
                                 resultRow(result)
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(NativeGlassRoundedButtonStyle(cornerRadius: 22, tint: palette.chromeTint, elevated: true))
                         }
                     }
                     .accessibilityIdentifier("searchResultsList")
@@ -181,15 +183,9 @@ struct SearchView: View {
                             }
                             .padding(.horizontal, 16)
                             .padding(.vertical, 16)
-                            .adaptiveGlass(
-                                in: RoundedRectangle(cornerRadius: 22, style: .continuous),
-                                tint: searchChromeTint,
-                                fallbackFill: cardFill,
-                                fallbackStroke: cardStroke
-                            )
                             .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(NativeGlassRoundedButtonStyle(cornerRadius: 22, tint: palette.chromeTint, elevated: true))
                     }
                 }
             }
@@ -246,12 +242,7 @@ struct SearchView: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .adaptiveGlass(
-            in: RoundedRectangle(cornerRadius: 22, style: .continuous),
-            tint: searchChromeTint,
-            fallbackFill: cardFill,
-            fallbackStroke: cardStroke
-        )
+        .background(Color.clear)
         .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
     }
 
@@ -338,64 +329,35 @@ struct SearchView: View {
         }
         .padding(28)
         .frame(maxWidth: .infinity)
-        .adaptiveGlass(
-            in: RoundedRectangle(cornerRadius: 28, style: .continuous),
-            tint: searchChromeTint,
-            fallbackFill: cardFill,
-            fallbackStroke: cardStroke
-        )
+        .background(Color.clear)
         .padding(.horizontal, 20)
+        .modifier(SearchStateCardGlass())
         Spacer()
     }
 
-    private var searchChromeTint: Color? {
-        switch theme {
-        case .light:
-            return .white.opacity(0.10)
-        case .dark:
-            return .gray.opacity(0.12)
-        case .sepia:
-            return .brown.opacity(0.16)
-        case .amoled:
-            return .white.opacity(0.05)
-        }
-    }
-
     private var cardFill: AnyShapeStyle {
-        switch theme {
-        case .amoled:
-            return AnyShapeStyle(Color.white.opacity(0.05))
-        case .sepia:
-            return AnyShapeStyle(theme.pageBackground.opacity(0.94))
-        default:
-            return AnyShapeStyle(.thinMaterial)
-        }
+        palette.cardFill
     }
 
     private var searchFieldFill: AnyShapeStyle {
-        switch theme {
-        case .light:
-            return AnyShapeStyle(Color(.systemGray6))
-        case .sepia:
-            return AnyShapeStyle(theme.pageBackground.opacity(0.92))
-        case .amoled:
-            return AnyShapeStyle(Color.white.opacity(0.05))
-        case .dark:
-            return AnyShapeStyle(.thinMaterial)
-        }
+        palette.elevatedFill
     }
 
     private var cardStroke: Color {
-        switch theme {
-        case .light:
-            return .black.opacity(0.06)
-        case .dark:
-            return .white.opacity(0.08)
-        case .sepia:
-            return Color(red: 0.55, green: 0.45, blue: 0.33).opacity(0.18)
-        case .amoled:
-            return .white.opacity(0.05)
-        }
+        palette.stroke
+    }
+}
+
+private struct SearchStateCardGlass: ViewModifier {
+    @Environment(\.readingTheme) private var theme
+
+    func body(content: Content) -> some View {
+        content.adaptiveGlass(
+            in: RoundedRectangle(cornerRadius: 28, style: .continuous),
+            tint: theme.nativeGlassPalette.sectionTint,
+            fallbackFill: theme.nativeGlassPalette.cardFill,
+            fallbackStroke: theme.nativeGlassPalette.stroke
+        )
     }
 }
 

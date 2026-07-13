@@ -108,7 +108,9 @@ enum AyahAction {
     case showTranslation(surah: Int, ayah: Int)
     case showTafsir(surah: Int, ayah: Int)
     case showSurahInfo(surah: Int)
-    case toggleBookmark(surah: Int, ayah: Int, page: Int)
+    case saveAyah(surah: Int, ayah: Int, page: Int)
+    case removeSavedAyah(surah: Int, ayah: Int)
+    case editNote(surah: Int, ayah: Int, page: Int)
 }
 
 // MARK: - QPC Text Line (UILabel subclass with context menu)
@@ -373,7 +375,9 @@ class QPCLabel: UILabel, UIContextMenuInteractionDelegate {
             actionProvider: { [weak self] _ in
                 guard let self = self else { return nil }
 
-                let isBookmarked = BookmarkManager.shared.isAyahBookmarked(surah: surah, ayah: ayahNum)
+                let savedAyah = BookmarkManager.shared.savedAyah(surah: surah, ayah: ayahNum)
+                let isSaved = savedAyah != nil
+                let hasNote = savedAyah?.hasNote ?? false
 
                 let translation = UIAction(
                     title: "Translation (\(surah):\(ayahNum))",
@@ -396,15 +400,26 @@ class QPCLabel: UILabel, UIContextMenuInteractionDelegate {
                     self.onAyahAction?(.showSurahInfo(surah: surah))
                 }
 
-                let bookmark = UIAction(
-                    title: isBookmarked ? "Remove Bookmark" : "Bookmark Ayah",
-                    image: UIImage(systemName: isBookmarked ? "bookmark.slash.fill" : "bookmark")
+                let saveAction = UIAction(
+                    title: isSaved ? "Remove Saved Ayah" : "Save Ayah",
+                    image: UIImage(systemName: isSaved ? "bookmark.slash.fill" : "bookmark")
                 ) { _ in
-                    self.onAyahAction?(.toggleBookmark(surah: surah, ayah: ayahNum, page: pageNum))
+                    if isSaved {
+                        self.onAyahAction?(.removeSavedAyah(surah: surah, ayah: ayahNum))
+                    } else {
+                        self.onAyahAction?(.saveAyah(surah: surah, ayah: ayahNum, page: pageNum))
+                    }
+                }
+
+                let noteAction = UIAction(
+                    title: hasNote ? "Edit Note" : "Add Note",
+                    image: UIImage(systemName: "note.text")
+                ) { _ in
+                    self.onAyahAction?(.editNote(surah: surah, ayah: ayahNum, page: pageNum))
                 }
 
                 let infoMenu = UIMenu(title: "", options: .displayInline, children: [translation, tafsir, surahInfo])
-                let bookmarkMenu = UIMenu(title: "", options: .displayInline, children: [bookmark])
+                let bookmarkMenu = UIMenu(title: "", options: .displayInline, children: [saveAction, noteAction])
 
                 return UIMenu(title: "", children: [infoMenu, bookmarkMenu])
             }
